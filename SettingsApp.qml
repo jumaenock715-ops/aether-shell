@@ -1,0 +1,93 @@
+import QtQuick
+
+Item {
+    id: root
+    property int page: 0
+    readonly property var pages: ["Appearance", "Display", "Network", "About"]
+    readonly property var accents: ["#6D4AFF", "#14B8D4", "#3DDC97", "#FF5C7A", "#FFB020"]
+
+    Rectangle {
+        id: side
+        width: 160; height: parent.height
+        color: Theme.surface
+        Column {
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 10 }
+            spacing: 4
+            Repeater {
+                model: root.pages
+                delegate: Rectangle {
+                    required property int index
+                    required property string modelData
+                    width: parent.width; height: 34; radius: 8
+                    color: root.page === index ? Theme.accent : "transparent"
+                    Text { anchors.verticalCenter: parent.verticalCenter; x: 12; text: modelData
+                           color: root.page === index ? "white" : Theme.text; font.pixelSize: 13 }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.page = index }
+                }
+            }
+        }
+    }
+
+    Item {
+        anchors { left: side.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 24 }
+
+        // Appearance
+        Column {
+            visible: root.page === 0; spacing: 18; width: parent.width
+            Text { text: "Appearance"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Row {
+                spacing: 16
+                Text { text: "Dark mode"; color: Theme.text; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
+                Toggle { checked: Theme.dark; onToggled: (v) => Theme.dark = v }
+            }
+            Column {
+                spacing: 8
+                Text { text: "Accent colour"; color: Theme.text; font.pixelSize: 14 }
+                Row {
+                    spacing: 10
+                    Repeater {
+                        model: root.accents
+                        delegate: Rectangle {
+                            required property string modelData
+                            width: 32; height: 32; radius: 16; color: modelData
+                            border.width: Theme.accent.toString().toLowerCase() === modelData.toLowerCase() ? 3 : 0
+                            border.color: Theme.text
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Theme.accent = modelData }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Display
+        Column {
+            visible: root.page === 1; spacing: 18; width: parent.width
+            Text { text: "Display"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Text { text: "Brightness"; color: Theme.text; font.pixelSize: 14 }
+            AetherSlider { width: 260; value: System.brightness; onMoved: (v) => System.brightness = v }
+        }
+
+        // Network
+        Column {
+            visible: root.page === 2; spacing: 18; width: parent.width
+            Text { text: "Network"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Row { spacing: 16
+                Text { text: "Wi-Fi"; color: Theme.text; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
+                Toggle { checked: System.wifi; onToggled: (v) => System.wifi = v } }
+            Row { spacing: 16
+                Text { text: "Bluetooth"; color: Theme.text; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
+                Toggle { checked: System.bluetooth; onToggled: (v) => System.bluetooth = v } }
+            Text { text: "Demo toggles. Real networking arrives with the Aether system services."; color: Theme.textDim; font.pixelSize: 12 }
+        }
+
+        // About
+        Column {
+            visible: root.page === 3; spacing: 10; width: parent.width
+            Text { text: "About"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Text { text: "Aether Shell 0.1 (prototype)"; color: Theme.text; font.pixelSize: 14 }
+            Text { text: "Qt " + Qt.platform.os + " build"; color: Theme.textDim; font.pixelSize: 12 }
+            Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.textDim; font.pixelSize: 12
+                   text: "First milestone of Project Aether OS: a desktop shell designed to become the real system shell." }
+        }
+    }
+}
