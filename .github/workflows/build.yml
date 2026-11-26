@@ -11,26 +11,25 @@ jobs:
       - name: System libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb imagemagick libgl1-mesa-dev libxkbcommon-x11-0 \
+          sudo apt-get install -y xvfb libgl1-mesa-dev libxkbcommon-x11-0 \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
       - name: Build
         run: |
           cmake -B build -S .
           cmake --build build -j
-      - name: Run and screenshot
+      - name: Click-through demo
         continue-on-error: true
         run: |
-          xvfb-run -a -s "-screen 0 1280x800x24" bash -c '
-            ./build/aether-shell > run.log 2>&1 &
-            sleep 6
-            import -window root shot.png
-            kill %1' || true
+          mkdir -p shots
+          AETHER_DEMO_DIR="$PWD/shots" timeout 90 xvfb-run -a -s "-screen 0 1280x800x24" \
+            ./build/aether-shell > run.log 2>&1 || true
           cat run.log || true
+          ls -la shots
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: aether-output
           path: |
-            shot.png
+            shots
             run.log
