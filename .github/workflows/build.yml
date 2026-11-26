@@ -1,0 +1,36 @@
+name: Build and screenshot
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.6.*'
+      - name: System libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb imagemagick libgl1-mesa-dev libxkbcommon-x11-0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+      - name: Build
+        run: |
+          cmake -B build -S .
+          cmake --build build -j
+      - name: Run and screenshot
+        continue-on-error: true
+        run: |
+          xvfb-run -a -s "-screen 0 1280x800x24" bash -c '
+            ./build/aether-shell > run.log 2>&1 &
+            sleep 6
+            import -window root shot.png
+            kill %1' || true
+          cat run.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aether-output
+          path: |
+            shot.png
+            run.log
