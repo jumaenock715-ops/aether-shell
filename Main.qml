@@ -29,6 +29,18 @@ Window {
         windows.setProperty(i, "stack", topZ)
     }
 
+    function launchApp(app) {
+        if (app.kind === "system") {
+            closePopups()
+            if (AppCatalog.launch(app.desktopId))
+                Notifications.push("Launching", app.name)
+            else
+                Notifications.push("Could not launch", app.name)
+        } else {
+            openApp(app.appId)
+        }
+    }
+
     function openApp(appId) {
         var app = Apps.byId(appId)
         if (!app) return
@@ -107,7 +119,7 @@ Window {
         anchors { fill: parent; topMargin: Theme.barHeight }
         z: 1500
         visible: win.launcherOpen
-        onLaunch: (appId) => win.openApp(appId)
+        onLaunch: (app) => win.launchApp(app)
         onCloseRequested: win.launcherOpen = false
     }
     QuickSettings {

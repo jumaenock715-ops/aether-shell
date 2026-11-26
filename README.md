@@ -6,7 +6,7 @@ Controls are interface demonstrations; they are not yet connected to hardware se
 ## What works
 - Top bar with clock, status area, notification badge
 - Dock with running-app indicators and hover animation
-- Fullscreen launcher with live search (Enter launches the first match, Esc closes)
+- Fullscreen launcher with live search; lists built-in apps plus installed apps read from XDG .desktop files, with theme icons (Enter launches the first match, Esc closes)
 - Quick settings: Wi-Fi, Bluetooth, dark mode, do not disturb, brightness (dims the shell)
 - Notification centre with toast popups and "Send test notification"
 - Floating, draggable app windows (close, maximise, double-click title bar, focus/raise)

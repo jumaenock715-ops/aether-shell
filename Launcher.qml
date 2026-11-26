@@ -2,11 +2,11 @@ import QtQuick
 
 Item {
     id: root
-    signal launch(string appId)
+    signal launch(var app)
     signal closeRequested()
 
     property string query: ""
-    readonly property var results: Apps.list.filter(function (a) {
+    readonly property var results: Apps.list.concat(AppCatalog.apps).filter(function (a) {
         return a.name.toLowerCase().indexOf(query.toLowerCase()) >= 0
     })
 
@@ -22,13 +22,12 @@ Item {
     Rectangle {
         id: panel
         anchors.centerIn: parent
-        width: Math.min(720, root.width - 60)
-        height: Math.min(520, root.height - 120)
+        width: Math.min(760, root.width - 60)
+        height: Math.min(560, root.height - 120)
         radius: 24
         color: Theme.panel
         border.color: Theme.border
 
-        // Search field
         Rectangle {
             id: searchBox
             anchors { top: parent.top; left: parent.left; right: parent.right; margins: 24 }
@@ -44,7 +43,7 @@ Item {
                 clip: true
                 onTextChanged: root.query = text
                 Keys.onEscapePressed: root.closeRequested()
-                Keys.onReturnPressed: if (root.results.length > 0) root.launch(root.results[0].appId)
+                Keys.onReturnPressed: if (root.results.length > 0) root.launch(root.results[0])
                 Text {
                     visible: search.text.length === 0
                     anchors.verticalCenter: parent.verticalCenter
@@ -54,28 +53,50 @@ Item {
             }
         }
 
-        Flow {
+        Flickable {
+            id: scroller
             anchors { top: searchBox.bottom; left: parent.left; right: parent.right; bottom: parent.bottom; margins: 24 }
-            anchors.topMargin: 28
-            spacing: 22
-            Repeater {
-                model: root.results
-                delegate: Item {
-                    required property var modelData
-                    width: 110; height: 104
-                    scale: tileArea.containsMouse ? 1.06 : 1.0
-                    Behavior on scale { NumberAnimation { duration: 120 } }
+            anchors.topMargin: 24
+            clip: true
+            contentWidth: width
+            contentHeight: grid.height
+            boundsBehavior: Flickable.StopAtBounds
 
-                    Column {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: 8
-                        AppIcon { size: 64; tint: modelData.tint; label: modelData.name; anchors.horizontalCenter: parent.horizontalCenter }
-                        Text { text: modelData.name; color: Theme.text; font.pixelSize: 13; anchors.horizontalCenter: parent.horizontalCenter }
-                    }
-                    MouseArea {
-                        id: tileArea; anchors.fill: parent; hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.launch(modelData.appId)
+            Flow {
+                id: grid
+                width: scroller.width
+                spacing: 14
+                Repeater {
+                    model: root.results
+                    delegate: Item {
+                        required property var modelData
+                        width: 110; height: 110
+                        scale: tileArea.containsMouse ? 1.06 : 1.0
+                        Behavior on scale { NumberAnimation { duration: 120 } }
+
+                        Column {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: 8
+                            AppIcon {
+                                size: 60
+                                tint: modelData.tint
+                                label: modelData.name
+                                iconName: modelData.icon !== undefined ? modelData.icon : ""
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+                            Text {
+                                width: 100
+                                text: modelData.name
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.AlignHCenter
+                                color: Theme.text; font.pixelSize: 12
+                            }
+                        }
+                        MouseArea {
+                            id: tileArea; anchors.fill: parent; hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.launch(modelData)
+                        }
                     }
                 }
             }
