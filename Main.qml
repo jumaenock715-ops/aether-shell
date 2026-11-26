@@ -159,6 +159,34 @@ Window {
         enabled: false
     }
 
+    // Automated demo for CI: runs only when AETHER_DEMO_DIR is set.
+    property int demoStep: 0
+    property bool demoActed: false
+    readonly property var demoSteps: [
+        { name: "01-start",         act: function () { } },
+        { name: "02-launcher",      act: function () { win.closePopups(); win.launcherOpen = true } },
+        { name: "03-settings",      act: function () { win.openApp("settings") } },
+        { name: "04-windows",       act: function () { win.openApp("files"); win.openApp("browser") } },
+        { name: "05-quick-settings",act: function () { win.closePopups(); win.quickOpen = true } },
+        { name: "06-notifications", act: function () { win.closePopups(); Notifications.push("Build", "Demo notification"); win.notifOpen = true } },
+        { name: "07-light-theme",   act: function () { win.closePopups(); Theme.dark = false } }
+    ]
+    Timer {
+        interval: 1300; repeat: true
+        running: demoDir !== ""
+        onTriggered: {
+            if (win.demoStep >= win.demoSteps.length) { Qt.quit(); return }
+            var s = win.demoSteps[win.demoStep]
+            if (!win.demoActed) {
+                s.act(); win.demoActed = true
+            } else {
+                var path = demoDir + "/" + s.name + ".png"
+                win.contentItem.grabToImage(function (r) { r.saveToFile(path) })
+                win.demoActed = false; win.demoStep += 1
+            }
+        }
+    }
+
     Component.onCompleted: {
         Notifications.push("Welcome to Aether", "Open the launcher from the top-left button or the dock.")
     }

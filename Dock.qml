@@ -6,7 +6,7 @@ Rectangle {
     signal launch(string appId)
     signal launcherRequested()
 
-    readonly property var pinned: Apps.list.slice(0, 6)
+    readonly property var pinned: Apps.list.filter(function (a) { return a.appId !== "notes" })
 
     width: row.width + 24
     height: 68
