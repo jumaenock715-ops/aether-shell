@@ -49,7 +49,7 @@ The Application Compatibility Layer presents one catalogue and launch experience
 
 The Android provider must eventually cover runtime start/stop/status, APK discovery and installation, package removal and update, per-app launch, Android app metadata/icons, notifications, clipboard, file sharing, audio, input, display sizing, and permission handling. The Linux provider continues to use native Linux application mechanisms.
 
-The current `ApplicationService` is an early Linux/XDG implementation. It is not yet the unified compatibility layer and does not yet manage APKs.
+`ApplicationService` now has the first unified catalogue/dispatch structure: Linux entries are exposed with `linux:` IDs, and an injected Android adapter can contribute package records with `android:` IDs. The Linux provider is active. The Android adapter interface exists, but no concrete runtime backend is connected, so APK discovery and launch are not yet operational.
 
 ### 3. Android Runtime Service
 
@@ -158,7 +158,7 @@ A UI control must not optimistically claim that an operation succeeded before th
 ## Relationship to current source
 
 - `System.qml` contains demonstration properties for Wi-Fi, Bluetooth, do-not-disturb, brightness, and battery. These are placeholders, not hardware integration.
-- `ApplicationService.cpp/.h` discovers XDG desktop entries and delegates Linux process launch requests to `SessionManager`. It is not yet the unified Android/Linux catalogue.
+- `ApplicationService.cpp/.h` exposes a unified provider-aware catalogue and delegates Linux process launches to `SessionManager`. It can merge Android records and dispatch Android launch requests when an adapter is injected; no concrete Android adapter is currently instantiated.
 - `AppCatalog.cpp/.h` provides the themed-icon image provider.
 - `NotificationService.cpp/.h` provides an in-process notification model; external D-Bus notification integration remains future work.
 - `SessionManager.cpp/.h` tracks launched Linux processes; it is not yet a complete login/session supervisor or Android lifecycle manager.
@@ -169,8 +169,8 @@ A UI control must not optimistically claim that an operation succeeded before th
 
 1. **Record the Android-first compatibility architecture and runtime adapter boundary.**
 2. **Extend Session Settings persistence** beyond the initial theme/accent implementation; add validated preference groups, migration tests, and user-level settings without redesigning the existing UI.
-3. **Define the unified application model** so Android and Linux apps can coexist in the existing launcher.
-4. **Implement the Android runtime adapter contract** and a candidate Waydroid backend behind it. Keep runtime-specific details out of QML.
+3. **Complete and validate the unified application model** and provider dispatch. The first catalogue/dispatch structure is now committed.
+4. **Implement a concrete Android runtime adapter**, initially targeting Waydroid after confirming the command output and runtime API contract. Keep runtime-specific details out of QML.
 5. **Extend Session Manager** to coordinate native process handles and Android runtime app handles.
 6. **Integrate notification, clipboard, file, audio, input, and graphics bridges** one capability at a time.
 7. **Integrate existing Linux system managers** for network, power, display, and devices.
