@@ -1,6 +1,6 @@
 # Aether OS Android Runtime Integration
 
-**Status:** Initial Waydroid CLI adapter implemented in source; no runtime has been installed or tested.  
+**Status:** Initial Waydroid CLI adapter and Android launch/window-state model implemented in source; no runtime has been installed or tested.  
 **Initial candidate:** Waydroid, subject to technical validation.  
 **Initial host direction:** Debian + Wayland + existing Aether Shell.
 
@@ -60,31 +60,29 @@ Decision: design a replaceable provider interface now; make the final runtime se
 
 The diagram describes the intended provider boundaries. The initial Android session manager described below is now present in source.
 
-### Unified application record
-
-Each catalogue entry should have a stable Aether identifier and at least:
-- application ID;
-- provider type (`linux` or `android`);
-- display name and description;
-- icon reference;
-- category;
-- launch target (desktop ID for Linux; package/activity identity for Android);
-- installation and launch state;
-- provider capabilities.
-
-Provider-specific metadata should remain available without making QML depend on provider-specific structures.
-
 ### Android application session tracking
 
-`AndroidSessionManager` is a provider-facing list model exposed to QML as `AndroidSessions`. It records one current launch record per package, including the display name, last request time, request state, explanatory detail, and an explicit `activityState` field.
+`AndroidSessionManager` is a provider-facing list model exposed to QML as `AndroidSessions`. It records one request record per package, including display name, last request time, request outcome, explanatory detail, and a separate `activityState` field.
 
-Current request states are:
-- `launch-requested` — Aether queued the request with the runtime adapter;
-- `launch-command-completed` — the Waydroid CLI command completed successfully; this does **not** prove that an Android activity is still running or visible;
+Request states:
+- `launch-requested` — Aether submitted the request to the runtime adapter;
+- `launch-command-completed` — the Waydroid CLI command completed successfully; this does **not** prove that an Android activity is running or visible;
 - `launch-failed` — the adapter reported a target-correlated failure;
-- `runtime-stopped` — the adapter confirmed completion of a user-session stop request.
+- `runtime-stopped` — the adapter reported completion of a user-session stop request.
 
-`activityState` intentionally remains `unknown` with the current Waydroid adapter. The provider-neutral adapter contract now includes an `applicationLifecycleChanged(packageName, state)` event for a future integration layer to report `started`, `foreground`, `background`, `stopped`, or `crashed`. The manager maps only those explicit provider events into activity states. The current Waydroid CLI backend does not emit this signal, so it does not fabricate Android process IDs, infer activity lifetime from the CLI process, or expose an unsupported per-app stop operation. A future window/lifecycle bridge must supply those events before Aether can display truthful running/paused/stopped states or manage individual Android app termination.
+The model also aggregates compositor-visible windows per package. It accepts provider events `opened`, `activated`, `deactivated`, and `closed`, tracks multiple opaque window IDs per package, and exposes `windowCount`, `activeWindowCount`, and `windowState` (`foreground`, `background`, `closed`, or `unknown`). This is deliberately distinct from Android process/activity lifetime: a visible window is evidence of a mapped desktop surface, not proof of every Android service or background process state.
+
+The adapter contract has two optional event channels:
+- `applicationLifecycleChanged(packageName, state)` for authoritative runtime activity events (`started`, `foreground`, `background`, `stopped`, `crashed`);
+- `applicationWindowChanged(packageName, windowId, title, state)` for compositor window events.
+
+A provider must resolve the Android package identity for each window; the shell must not guess from a window title. A provider that cannot observe these events must not emit them. The current Waydroid CLI adapter does not yet implement either event source, so activity state remains `unknown` and window state remains `unknown` until a real runtime/compositor bridge is connected.
+
+### Wayland window observation strategy
+
+Aether Shell is a Wayland client, not a compositor. A separate compositor may expose a foreign-toplevel protocol that allows an authorized client to observe mapped windows and their metadata. The `wlr-foreign-toplevel-management` protocol and the newer `ext-foreign-toplevel-list` protocol are candidates, but compositor support and policy must be verified before choosing an implementation. These protocols report desktop toplevels, not Android's complete internal activity/process lifecycle.
+
+Waydroid's documented application CLI provides install, remove, launch, and list operations. It does not provide a documented per-application stop or live activity-state command in that interface. Therefore the current implementation does not invent per-app termination or parse unstable diagnostic output as authoritative lifecycle state.
 
 ### Android runtime adapter contract
 
@@ -166,33 +164,34 @@ A LineageOS/AOSP-derived runtime does not automatically include licensed Google 
 ## 10. Development milestones
 
 1. Architecture and provider interface — documented.
-2. Session Settings persistence — initial dark-mode and accent-colour persistence is implemented; extend the service and validate migrations.
+2. Session Settings persistence — initial dark-mode, accent-colour, and do-not-disturb preferences are implemented; extend the service and validate migrations.
 3. Unified application record and dispatcher — first catalogue and provider-dispatch structure is implemented without changing the launcher visuals.
 4. Runtime adapter skeleton — the Android provider interface is committed and remains independent of whether Waydroid is installed.
 5. Waydroid CLI backend — asynchronous app-list, launch, APK install/remove, and user-session start/stop operations are implemented. Launcher requests start the user session automatically when needed; Settings also exposes manual session controls and refresh. Runtime installation, image initialization, kernel configuration, and validation remain outstanding.
-6. Notification, clipboard, file, audio, input, and window bridges.
-7. Debian packaging and kernel configuration.
-8. Runtime testing on real target hardware.
-9. ARM64 platform and ARM ABI strategy.
+6. Android request ledger and window aggregation — source implementation present; real Wayland/runtime event source still outstanding.
+7. Notification, clipboard, file, audio, and input bridges.
+8. Debian packaging and kernel configuration.
+9. Runtime testing on real target hardware.
+10. ARM64 platform and ARM ABI strategy.
 
 ## 11. Current implementation status
 
-Not implemented:
+Implemented in source:
+- Qt/QML shell and launcher;
+- unified application catalogue/dispatch structure with Linux XDG discovery and optional Waydroid adapter;
+- preliminary Linux process launch tracking;
+- in-process notification model;
+- Session Settings persistence for dark mode, accent colour, and do-not-disturb;
+- Android launch-request ledger;
+- Android window-event contract and per-package multi-window aggregation.
+
+Not implemented or not validated:
 - Android runtime or Android system image;
-- ART integration;
-- Binder/BinderFS configuration;
-- Waydroid installation and Android system image;
-- live Android package discovery and app operations have source implementations but remain untested; no confirmed working runtime is available;
-- Android app window integration and authoritative per-activity lifecycle events (the initial launch-request ledger exists, but does not track actual activity lifetime);
+- ART integration, Binder/BinderFS configuration, Waydroid installation and image initialization;
+- real Wayland foreign-toplevel event source and package-identity resolver;
+- authoritative Android activity lifecycle events;
 - Android notification, clipboard, file, audio, or input bridges;
+- per-Android-app termination;
 - ARM native-library translation.
 
-Existing code:
-- the Qt/QML shell and launcher;
-- unified application catalogue/dispatch structure with Linux XDG discovery and a concrete, optional Waydroid adapter;
-- preliminary Linux process launch;
-- in-process notification model;
-- preliminary Linux process tracking;
-- `AndroidSessionManager` launch-request tracking with target-correlated command success/failure and explicit unknown activity state.
-
-The Waydroid adapter invokes the documented `waydroid app list/install/remove/launch` and `waydroid session start/stop` commands as separate QProcess arguments; it never constructs a shell command. Its target-aware failure signal lets `AndroidSessionManager` associate a failed launch/session-start operation with the package that requested it. Its application-list parser follows the current Waydroid CLI source format (`Name`, `packageName`, `categories`). The adapter's `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. The Settings page exposes this state and lets the user request session start/stop and app-list refresh. Listing depends on a running Waydroid session. No runtime build, boot, or hardware test has been performed. The Android session model is an initial request/outcome ledger, not a live Android activity tracker.
+The Waydroid adapter invokes CLI operations as separate QProcess arguments, never as a constructed shell command. Its `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. No runtime build, boot, or hardware test has been performed.
