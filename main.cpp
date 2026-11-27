@@ -4,11 +4,14 @@
 #include "ApplicationService.h"
 #include "NotificationService.h"
 #include "SessionManager.h"
+#include "SessionSettings.h"
 #include "AppCatalog.h"
 
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+    app.setOrganizationName("Aether");
+    app.setOrganizationDomain("aetheros.local");
     app.setApplicationName("Aether Shell");
 
     ApplicationService applicationService;
@@ -16,6 +19,7 @@ int main(int argc, char *argv[])
 
     NotificationService notificationService;
     SessionManager sessionManager;
+    SessionSettings sessionSettings;
     applicationService.setSessionManager(&sessionManager);
 
     QQmlApplicationEngine engine;
@@ -25,6 +29,7 @@ int main(int argc, char *argv[])
     // Preserve the existing Notifications QML API while moving its model into C++.
     engine.rootContext()->setContextProperty("Notifications", &notificationService);
     engine.rootContext()->setContextProperty("SessionManager", &sessionManager);
+    engine.rootContext()->setContextProperty("SessionSettings", &sessionSettings);
     // Non-empty only in CI: enables the automated click-through that saves screenshots.
     engine.rootContext()->setContextProperty("demoDir", QString::fromLocal8Bit(qgetenv("AETHER_DEMO_DIR")));
 
