@@ -1,6 +1,7 @@
 #include "ApplicationService.h"
 #include "SessionManager.h"
 #include "AndroidRuntimeAdapter.h"
+#include "AndroidSessionManager.h"
 
 #include <QColor>
 #include <QDir>
@@ -142,6 +143,28 @@ void ApplicationService::setAndroidRuntimeAdapter(AndroidRuntimeAdapter *adapter
         });
     }
     reload();
+}
+
+void ApplicationService::setAndroidSessionManager(AndroidSessionManager *manager)
+{
+    if (m_androidSessionManager == manager)
+        return;
+
+    if (m_androidSessionManager)
+        disconnect(m_androidSessionManager, nullptr, this, nullptr);
+
+    m_androidSessionManager = manager;
+    if (!m_androidSessionManager)
+        return;
+
+    connect(m_androidSessionManager, &AndroidSessionManager::launchRequested,
+            this, [this](const QString &packageName) {
+        emit launchStarted(QStringLiteral("android:") + packageName);
+    });
+    connect(m_androidSessionManager, &AndroidSessionManager::launchFailed,
+            this, [this](const QString &packageName, const QString &reason) {
+        emit launchFailed(QStringLiteral("android:") + packageName, reason);
+    });
 }
 
 void ApplicationService::reload()
@@ -288,14 +311,21 @@ bool ApplicationService::launch(const QString &appId)
             emit launchFailed(appId, QStringLiteral("The Android runtime is unavailable."));
             return false;
         }
-        QString error;
-        if (!m_androidAdapter->launchPackage(packageName, &error)) {
-            emit launchFailed(appId, error.isEmpty()
-                ? QStringLiteral("The Android application could not be launched.") : error);
+        const QVariantMap app = [&]() {
+            for (const QVariant &entry : m_apps) {
+                const QVariantMap candidate = entry.toMap();
+                if (candidate.value("appId").toString() == appId)
+                    return candidate;
+            }
+            return QVariantMap{};
+        }();
+        if (!m_androidSessionManager) {
+            emit launchFailed(appId,
+                              QStringLiteral("The Android session manager is not available."));
             return false;
         }
-        emit launchStarted(appId);
-        return true;
+        return m_androidSessionManager->launch(
+            packageName, app.value("name").toString());
     }
 
     const QString desktopId = appId.startsWith(QStringLiteral("linux:"))
