@@ -155,6 +155,9 @@ Item {
                         required property string name
                         required property string state
                         required property string activityState
+                        required property string windowState
+                        required property int windowCount
+                        required property int activeWindowCount
                         width: parent.width; spacing: 2
                         Text {
                             width: parent.width; wrapMode: Text.WordWrap
@@ -164,6 +167,11 @@ Item {
                         Text {
                             width: parent.width; wrapMode: Text.WordWrap
                             text: "Activity state: " + activityState
+                            color: Theme.textDim; font.pixelSize: 10
+                        }
+                        Text {
+                            width: parent.width; wrapMode: Text.WordWrap
+                            text: "Windows: " + windowCount + " (active: " + activeWindowCount + ") — " + windowState
                             color: Theme.textDim; font.pixelSize: 10
                         }
                     }
