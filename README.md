@@ -10,7 +10,7 @@ Controls are interface demonstrations; they are not yet connected to hardware se
 - Quick settings: Wi-Fi, Bluetooth, dark mode, do not disturb, brightness (dims the shell)
 - Notification centre with toast popups and "Send test notification"
 - Floating, draggable app windows (close, maximise, double-click title bar, focus/raise)
-- Settings app: dark/light theme, accent colour, display, network, about
+- Settings app: dark/light theme, accent colour, display, network, Android runtime session controls, about
 
 ## Session manager
 
@@ -44,7 +44,7 @@ The Linux provider currently:
 
 Terminal-based desktop entries and file/URL launch contexts are not yet supported. Full desktop-entry localization and specification conformance remain future work.
 
-The Android provider now has a concrete Waydroid adapter. When the `waydroid` executable is installed, it asynchronously requests the installed-app list and can dispatch app launch, APK install/remove, and user-session start/stop operations. The launcher still uses the same unified `AppCatalog.launch(appId)` API. If Waydroid is absent, the provider reports itself unavailable and contributes no Android entries. The adapter does not install Waydroid, initialize an Android image, configure the host kernel, or provide Android window/service bridges. App listing also depends on a live Waydroid session, and live behaviour has not yet been tested.
+The Android provider has a concrete Waydroid adapter. When the `waydroid` executable is installed, it asynchronously requests the installed-app list and supports app launch, APK install/remove, and user-session start/stop operations. Launching an Android app automatically requests a user session first when one is not already marked running. Settings exposes session start/stop, refresh, and status controls. The launcher still uses the same unified `AppCatalog.launch(appId)` API. If Waydroid is absent, the provider reports itself unavailable and contributes no Android entries. The adapter does not install Waydroid, initialize an Android image, configure the host kernel, or provide Android window/service bridges. App listing depends on a live Waydroid session, and live behaviour has not yet been tested.
 
 ## Build (Ubuntu / Debian)
     sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev \
