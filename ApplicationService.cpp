@@ -1,5 +1,6 @@
 #include "ApplicationService.h"
 #include "SessionManager.h"
+#include "AndroidRuntimeAdapter.h"
 
 #include <QColor>
 #include <QDir>
@@ -121,6 +122,28 @@ void ApplicationService::setSessionManager(SessionManager *sessionManager)
             this, &ApplicationService::launchFailed);
 }
 
+void ApplicationService::setAndroidRuntimeAdapter(AndroidRuntimeAdapter *adapter)
+{
+    if (m_androidAdapter == adapter)
+        return;
+
+    if (m_androidAdapter)
+        disconnect(m_androidAdapter, nullptr, this, nullptr);
+
+    m_androidAdapter = adapter;
+    if (m_androidAdapter) {
+        connect(m_androidAdapter, &AndroidRuntimeAdapter::applicationsChanged,
+                this, &ApplicationService::reload);
+        connect(m_androidAdapter, &AndroidRuntimeAdapter::runtimeStateChanged,
+                this, &ApplicationService::appsChanged);
+        connect(m_androidAdapter, &AndroidRuntimeAdapter::operationFailed,
+                this, [this](const QString &operation, const QString &reason) {
+            emit launchFailed(operation, reason);
+        });
+    }
+    reload();
+}
+
 void ApplicationService::reload()
 {
     QHash<QString, LaunchEntry> nextLaunchEntries;
@@ -188,8 +211,9 @@ void ApplicationService::reload()
                 continue;
 
             QVariantMap app;
-            app["appId"] = desktopId;
+            app["appId"] = QStringLiteral("linux:") + desktopId;
             app["desktopId"] = desktopId;
+            app["provider"] = QStringLiteral("linux");
             app["name"] = name;
             app["genericName"] = desktopFile.value("GenericName").toString();
             app["comment"] = desktopFile.value("Comment").toString();
@@ -227,13 +251,55 @@ void ApplicationService::reload()
     for (const QVariantMap &entry : sorted)
         nextApps.append(entry);
 
+    // Android records are normalized at the provider boundary and merged into
+    // the same catalogue. The provider is optional until a runtime is selected.
+    if (m_androidAdapter && m_androidAdapter->isAvailable()) {
+        const QVariantList androidApps = m_androidAdapter->applications();
+        for (const QVariant &value : androidApps) {
+            const QVariantMap source = value.toMap();
+            const QString packageName = source.value("packageName").toString().trimmed();
+            const QString name = source.value("name").toString().trimmed();
+            if (packageName.isEmpty() || name.isEmpty())
+                continue;
+
+            QVariantMap app;
+            app["appId"] = QStringLiteral("android:") + packageName;
+            app["packageName"] = packageName;
+            app["provider"] = QStringLiteral("android");
+            app["kind"] = QStringLiteral("android");
+            app["name"] = name;
+            app["icon"] = source.value("icon");
+            app["categories"] = source.value("categories");
+            app["tint"] = QColor::fromHsl(qHash(packageName) % 360, 150, 120).name();
+            nextApps.append(app);
+        }
+    }
+
     m_launchEntries = std::move(nextLaunchEntries);
     m_apps = std::move(nextApps);
     emit appsChanged();
 }
 
-bool ApplicationService::launch(const QString &desktopId)
+bool ApplicationService::launch(const QString &appId)
 {
+    if (appId.startsWith(QStringLiteral("android:"))) {
+        const QString packageName = appId.mid(QStringLiteral("android:").size());
+        if (!m_androidAdapter || !m_androidAdapter->isAvailable()) {
+            emit launchFailed(appId, QStringLiteral("The Android runtime is unavailable."));
+            return false;
+        }
+        QString error;
+        if (!m_androidAdapter->launchPackage(packageName, &error)) {
+            emit launchFailed(appId, error.isEmpty()
+                ? QStringLiteral("The Android application could not be launched.") : error);
+            return false;
+        }
+        emit launchStarted(appId);
+        return true;
+    }
+
+    const QString desktopId = appId.startsWith(QStringLiteral("linux:"))
+        ? appId.mid(QStringLiteral("linux:").size()) : appId;
     const auto it = m_launchEntries.constFind(desktopId);
     if (it == m_launchEntries.cend()) {
         emit launchFailed(desktopId, QStringLiteral("Application is not available."));
