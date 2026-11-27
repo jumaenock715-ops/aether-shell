@@ -25,26 +25,18 @@ AndroidSessionManager::AndroidSessionManager(AndroidRuntimeAdapter *adapter,
         emit launchCommandCompleted(target);
     });
 
-    connect(m_adapter, &AndroidRuntimeAdapter::operationFailed,
-            this, [this](const QString &operation, const QString &reason) {
-        if (operation != QStringLiteral("launch") &&
-            operation != QStringLiteral("session-start"))
+    connect(m_adapter, &AndroidRuntimeAdapter::operationFailedForTarget,
+            this, [this](const QString &operation, const QString &target,
+                         const QString &reason) {
+        if (target.isEmpty() ||
+            (operation != QStringLiteral("launch") &&
+             operation != QStringLiteral("session-start")))
             return;
-
-        // A session-start failure is associated with a package only when the
-        // adapter supplied that package as the operation target. The current
-        // adapter's generic operationFailed signal does not include a target,
-        // so package-specific launch-start failures are surfaced by the
-        // ApplicationService as well; don't guess which record failed here.
-        if (operation == QStringLiteral("launch")) {
-            // The adapter reports operation and reason but not target on
-            // failure. Mark pending launch records as failed rather than
-            // inventing a package association.
-            for (int i = 0; i < m_records.size(); ++i) {
-                if (m_records[i].state == QStringLiteral("launch-requested"))
-                    updateRecord(i, QStringLiteral("launch-failed"), reason);
-            }
-        }
+        const int row = indexOf(target);
+        if (row < 0)
+            return;
+        updateRecord(row, QStringLiteral("launch-failed"), reason);
+        emit launchFailed(target, reason);
     });
 
     connect(m_adapter, &AndroidRuntimeAdapter::runtimeStateChanged,
