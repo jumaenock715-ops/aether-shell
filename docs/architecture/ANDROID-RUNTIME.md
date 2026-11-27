@@ -80,7 +80,15 @@ A provider must resolve the Android package identity for each window; the shell 
 
 ### Wayland window observation strategy
 
-Aether Shell is a Wayland client, not a compositor. A separate compositor may expose a foreign-toplevel protocol that allows an authorized client to observe mapped windows and their metadata. The `wlr-foreign-toplevel-management` protocol and the newer `ext-foreign-toplevel-list` protocol are candidates, but compositor support and policy must be verified before choosing an implementation. These protocols report desktop toplevels, not Android's complete internal activity/process lifecycle.
+Aether Shell is a Wayland client, not a compositor. The tracker will use a dedicated Wayland client connection and runtime protocol discovery. Prefer `ext-foreign-toplevel-list-v1` for read-only enumeration and lifecycle events; support `zwlr-foreign-toplevel-management-unstable-v1` as a compatibility backend where needed. The tracker must check which global is actually advertised at runtime and report `unsupported` when neither is available. It must not assume a protocol from the compositor's name or version.
+
+The standard `ext-foreign-toplevel-list-v1` protocol is intentionally minimal and compositor policy may restrict which clients can bind it. It provides mapped toplevel handles and metadata such as title, app ID, and a temporary unique identifier; it does not itself provide the complete state/control surface of the older wlr protocol. The wlr protocol includes state such as activation and requests to manipulate toplevels. Aether's first implementation should be observation-only; do not expose close/maximize/activate requests until permission, UX, and protocol-specific behavior are separately designed.
+
+Current compatibility references list Weston 15 without either protocol, while Sway and labwc list support for `ext-foreign-toplevel-list-v1`. Consequently Weston is not an acceptable reference compositor for this feature. Labwc and Sway are candidates for the first protocol integration test, but Waydroid surface presentation and app identity still require validation. This does not commit Aether's final desktop session to either compositor.
+
+A compositor's `app_id` is not guaranteed to equal an Android package name. The runtime bridge must provide an explicit, validated mapping from the Wayland surface identity to the Android package. Window title matching is not an acceptable identity mechanism. If the mapping cannot be established, the tracker may show an unassociated window but must not attach it to a guessed Android application.
+
+These protocols report desktop toplevel windows, not Android's complete internal activity/process lifecycle. A mapped window can support truthful window-state reporting, but cannot prove that all activities or background services for that package are alive.
 
 Waydroid's documented application CLI provides install, remove, launch, and list operations. It does not provide a documented per-application stop or live activity-state command in that interface. Therefore the current implementation does not invent per-app termination or parse unstable diagnostic output as authoritative lifecycle state.
 
@@ -114,9 +122,9 @@ The Android userspace shares the host Linux kernel. It does not bring an indepen
 
 Aether Shell currently runs as a Wayland client. It is not a compositor.
 
-Initial integration should use a separate Wayland compositor. Weston is a candidate for the first development host. The Android runtime must be able to present its app surfaces through that compositor. Aether's launcher should start Android apps through the adapter, while the compositor/runtime integration handles their windows.
+Initial integration must use a separate Wayland compositor that exposes a supported foreign-toplevel protocol. Weston was previously considered, but the current protocol compatibility references do not list Weston 15 as supporting either `ext-foreign-toplevel-list-v1` or `zwlr-foreign-toplevel-management-unstable-v1`; it is therefore not a suitable reference compositor for this window-observation implementation. Labwc and Sway are candidate development compositors because current compatibility references list support for the standard foreign-toplevel list protocol. This is a protocol-capability choice, not yet a final desktop UX choice. Validate Waydroid surface presentation and package identity mapping on the selected compositor before adoption.
 
-A future Aether compositor decision can be made independently. Do not turn the current Qt shell into a compositor by assumption.
+Aether's launcher starts Android apps through the adapter, while the compositor/runtime integration handles their windows. Aether Shell remains a Wayland client, not a compositor. A future Aether compositor decision can be made independently.
 
 ## 6. CPU ABI compatibility
 
@@ -168,7 +176,7 @@ A LineageOS/AOSP-derived runtime does not automatically include licensed Google 
 3. Unified application record and dispatcher — first catalogue and provider-dispatch structure is implemented without changing the launcher visuals.
 4. Runtime adapter skeleton — the Android provider interface is committed and remains independent of whether Waydroid is installed.
 5. Waydroid CLI backend — asynchronous app-list, launch, APK install/remove, and user-session start/stop operations are implemented. Launcher requests start the user session automatically when needed; Settings also exposes manual session controls and refresh. Runtime installation, image initialization, kernel configuration, and validation remain outstanding.
-6. Android request ledger and window aggregation — source implementation present; real Wayland/runtime event source still outstanding.
+6. Android request ledger and window aggregation — source implementation present; protocol backend and runtime-to-package identity mapping still outstanding. Weston is excluded as the reference compositor for this feature; labwc/Sway are candidates.
 7. Notification, clipboard, file, audio, and input bridges.
 8. Debian packaging and kernel configuration.
 9. Runtime testing on real target hardware.
