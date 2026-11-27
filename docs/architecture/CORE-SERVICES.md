@@ -76,7 +76,7 @@ User-session responsibilities that do not inherently require elevated privileges
 
 Session Settings is a distinct in-process service under active development. It persists dark/light mode, accent colour, and do-not-disturb across shell restarts, with schema versioning and defaults. Do-not-disturb is a user notification preference and suppresses toast presentation. Display brightness, Wi-Fi, Bluetooth, and power state are not ordinary user preferences and must ultimately be controlled by system providers.
 
-Session Manager must evolve beyond tracking one process per launched Linux app. It should coordinate provider-specific lifecycle handles: Linux process instances and Android package/activity instances managed by the Android runtime.
+The native `SessionManager` continues to track Linux `QProcess` instances. A separate `AndroidSessionManager` now records Android package launch requests and Waydroid command outcomes without treating the short-lived CLI process as the Android app process. It deliberately reports Android activity state as `unknown`: the current adapter does not yet receive authoritative per-activity start, stop, focus, or exit events. The two provider-specific managers are exposed separately and can later sit behind a unified session API once real Android lifecycle events are available.
 
 ### 5. System services
 
@@ -158,10 +158,10 @@ A UI control must not optimistically claim that an operation succeeded before th
 ## Relationship to current source
 
 - `System.qml` contains demonstration properties for Wi-Fi, Bluetooth, do-not-disturb, brightness, and battery. These are placeholders, not hardware integration.
-- `ApplicationService.cpp/.h` exposes a unified provider-aware catalogue and delegates Linux process launches to `SessionManager`. `WaydroidRuntimeAdapter.cpp/.h` is instantiated in `main.cpp`, contributes Android package records when the runtime is available, and dispatches Android launch requests through the Waydroid CLI.
+- `ApplicationService.cpp/.h` exposes a unified provider-aware catalogue and delegates Linux process launches to `SessionManager` and Android launches to `AndroidSessionManager`. `WaydroidRuntimeAdapter.cpp/.h` supplies Android package records and asynchronous runtime commands. Target-aware operation results are passed back to the Android session model.
 - `AppCatalog.cpp/.h` provides the themed-icon image provider.
 - `NotificationService.cpp/.h` provides an in-process notification model; external D-Bus notification integration remains future work.
-- `SessionManager.cpp/.h` tracks launched Linux processes; it is not yet a complete login/session supervisor or Android lifecycle manager.
+- `SessionManager.cpp/.h` tracks launched Linux processes. `AndroidSessionManager.cpp/.h` records Android launch requests, command completion/failure, and confirmed runtime-session stop; its `activityState` remains `unknown` because no per-activity event bridge exists. Neither manager is a complete login/session supervisor.
 - `SessionSettings.cpp/.h` persists dark/light mode, accent colour, and do-not-disturb through QSettings with schema version 2. The existing Settings and Quick Settings UI use the service. Other settings categories and migrations remain future work.
 - `main.cpp` constructs the shell and current in-process services. These are not yet separate system daemons.
 
@@ -171,7 +171,7 @@ A UI control must not optimistically claim that an operation succeeded before th
 2. **Extend Session Settings persistence** beyond the initial theme/accent implementation; add validated preference groups, migration tests, and user-level settings without redesigning the existing UI.
 3. **Complete and validate the unified application model** and provider dispatch. The first catalogue/dispatch structure is now committed.
 4. **Implement a concrete Android runtime adapter**, initially targeting Waydroid. The asynchronous CLI adapter is now present in source, with session controls exposed in Settings; runtime installation, image initialization, and real execution validation remain outstanding.
-5. **Extend Session Manager** to coordinate native process handles and Android runtime app handles.
+5. **Add provider-specific application lifecycle tracking.** Linux process tracking remains in `SessionManager`; `AndroidSessionManager` now records Android package launch requests and command outcomes. The remaining work is an authoritative Waydroid activity/window event bridge before Aether can report an Android app as actually running or stopped.
 6. **Integrate notification, clipboard, file, audio, input, and graphics bridges** one capability at a time.
 7. **Integrate existing Linux system managers** for network, power, display, and devices.
 8. **Add persistence migration, authorization, error handling, and security hardening.**
