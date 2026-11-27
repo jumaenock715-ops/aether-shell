@@ -18,6 +18,12 @@ The C++ `SessionManager` launches and tracks application processes requested by 
 
 This is a first session-level process tracker, not yet a complete desktop-session supervisor. It does not yet restore sessions, monitor child process trees, enforce resource limits, or coordinate logout and system shutdown.
 
+## Session settings
+
+The C++ `SessionSettings` service persists the appearance preferences used by the existing shell. Dark/light mode and accent colour are stored through Qt's `QSettings` backend, loaded at startup, and exposed as typed properties to the existing `Theme` singleton. The Settings app and quick-settings dark-mode control use this service without changing the interface design. A schema version is recorded for future preference migrations.
+
+This is the first persistence slice, not the complete settings system. Display brightness, Wi-Fi, Bluetooth, do-not-disturb, shell layout, startup preferences, and Android-specific settings are not yet persisted or connected to real system services.
+
 ## Notification service
 
 The C++ `NotificationService` owns the session notification list and exposes it to QML through the existing `Notifications` context property. It preserves the current `items`, `count`, `push(title, body)`, `clear()`, and `pushed` interfaces, so the notification centre and badge do not need a visual rewrite.
@@ -50,6 +56,7 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 ## Layout
 - `Main.qml` shell root and window management
 - `Theme.qml`, `Apps.qml`, `System.qml` QML singletons (shared state)
+- `SessionSettings.cpp/.h`: persistent user appearance preferences
 - `NotificationService.cpp/.h`: session notification model exposed to QML
 - `SessionManager.cpp/.h`: application process lifecycle tracking
 - `ApplicationService.cpp/.h`: session-level installed-application discovery and launch service
