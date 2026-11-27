@@ -181,7 +181,7 @@ Window {
         { name: "04-windows",       act: function () { win.openApp("files"); win.openApp("browser") } },
         { name: "05-quick-settings",act: function () { win.closePopups(); win.quickOpen = true } },
         { name: "06-notifications", act: function () { win.closePopups(); Notifications.push("Build", "Demo notification"); win.notifOpen = true } },
-        { name: "07-light-theme",   act: function () { win.closePopups(); Theme.dark = false } }
+        { name: "07-light-theme",   act: function () { win.closePopups(); SessionSettings.setDarkMode(false) } }
     ]
     Timer {
         interval: 1300; repeat: true
