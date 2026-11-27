@@ -2,6 +2,13 @@ import QtQuick
 
 Item {
     id: root
+
+    Connections {
+        target: AndroidRuntime
+        function onOperationFailed(operation, reason) {
+            Notifications.push("Android runtime", operation + ": " + reason)
+        }
+    }
     property int page: 0
     readonly property var pages: ["Appearance", "Display", "Network", "Android", "About"]
     readonly property var accents: ["#6D4AFF", "#14B8D4", "#3DDC97", "#FF5C7A", "#FFB020"]
