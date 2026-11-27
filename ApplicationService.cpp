@@ -1,4 +1,5 @@
 #include "ApplicationService.h"
+#include "SessionManager.h"
 
 #include <QColor>
 #include <QDir>
@@ -98,6 +99,26 @@ bool buildLaunchCommand(const QString &exec, const QString &name,
 ApplicationService::ApplicationService(QObject *parent)
     : QObject(parent)
 {
+}
+
+void ApplicationService::setSessionManager(SessionManager *sessionManager)
+{
+    if (m_sessionManager == sessionManager)
+        return;
+
+    if (m_sessionManager)
+        disconnect(m_sessionManager, nullptr, this, nullptr);
+
+    m_sessionManager = sessionManager;
+    if (!m_sessionManager)
+        return;
+
+    connect(m_sessionManager, &SessionManager::applicationStarted,
+            this, [this](const QString &desktopId, qint64) {
+        emit launchStarted(desktopId);
+    });
+    connect(m_sessionManager, &SessionManager::applicationFailed,
+            this, &ApplicationService::launchFailed);
 }
 
 void ApplicationService::reload()
@@ -219,13 +240,12 @@ bool ApplicationService::launch(const QString &desktopId)
         return false;
     }
 
-    qint64 processId = 0;
-    if (!QProcess::startDetached(it->program, it->arguments, QString(), &processId)) {
+    if (!m_sessionManager) {
         emit launchFailed(desktopId,
-                          QStringLiteral("The application process could not be started."));
+                          QStringLiteral("The session manager is not available."));
         return false;
     }
 
-    emit launchStarted(desktopId);
-    return true;
+    return m_sessionManager->launch(desktopId, it->name,
+                                    it->program, it->arguments);
 }
