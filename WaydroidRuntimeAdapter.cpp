@@ -95,6 +95,9 @@ bool WaydroidRuntimeAdapter::runCommand(
         if (processError != QProcess::FailedToStart)
             return;
         m_processes.remove(process);
+        if (operation == QStringLiteral("session-start") ||
+            operation == QStringLiteral("session-stop"))
+            setRuntimeState(QStringLiteral("error"));
         emit operationFailed(operation, process->errorString());
         process->deleteLater();
     });
