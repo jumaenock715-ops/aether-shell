@@ -20,6 +20,9 @@ public:
     // packageName, name, icon (optional), categories (optional).
     virtual QVariantList applications() const = 0;
     virtual bool isAvailable() const = 0;
+    virtual QString runtimeState() const = 0;
+    virtual bool startRuntime(QString *error = nullptr) = 0;
+    virtual bool stopRuntime(QString *error = nullptr) = 0;
 
     // Returns whether the request was accepted; errors explain rejection.
     virtual bool launchPackage(const QString &packageName,
@@ -33,4 +36,5 @@ signals:
     void applicationsChanged();
     void runtimeStateChanged();
     void operationFailed(const QString &operation, const QString &reason);
+    void operationFinished(const QString &operation, const QString &target);
 };
