@@ -135,7 +135,7 @@ void ApplicationService::setAndroidRuntimeAdapter(AndroidRuntimeAdapter *adapter
         connect(m_androidAdapter, &AndroidRuntimeAdapter::applicationsChanged,
                 this, &ApplicationService::reload);
         connect(m_androidAdapter, &AndroidRuntimeAdapter::runtimeStateChanged,
-                this, &ApplicationService::appsChanged);
+                this, &ApplicationService::reload);
         connect(m_androidAdapter, &AndroidRuntimeAdapter::operationFailed,
                 this, [this](const QString &operation, const QString &reason) {
             emit launchFailed(operation, reason);
