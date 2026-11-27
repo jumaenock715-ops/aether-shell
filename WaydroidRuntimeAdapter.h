@@ -48,10 +48,10 @@ public:
 
     // Register only when a trusted runtime integration has established the
     // app_id -> package relationship. The package must be installed.
-    bool registerWindowAppIdMapping(const QString &appId,
-                                    const QString &packageName,
+    bool registerWindowPackageMapping(const QString &windowId,
+                                      const QString &packageName,
                                     QString *error = nullptr);
-    void clearWindowAppIdMapping(const QString &appId);
+    void clearWindowPackageMapping(const QString &windowId);
     void setWindowTracker(WaylandWindowTracker *tracker);
     Q_INVOKABLE bool requestStartRuntime() { return startRuntime(nullptr); }
     Q_INVOKABLE bool requestStopRuntime() { return stopRuntime(nullptr); }
@@ -71,7 +71,7 @@ private:
     static QVariantList parseApplicationList(const QByteArray &output);
     void setRuntimeState(const QString &state);
     bool isInstalledPackage(const QString &packageName) const;
-    QString mappedPackageForAppId(const QString &appId) const;
+    QString mappedPackageForWindow(const QString &windowId) const;
     void handleWindowChanged(const QString &appId, const QString &windowId,
                              const QString &title, const QString &eventState);
     void associateObservedWindow(const QString &windowId,
@@ -82,7 +82,7 @@ private:
     QVariantList m_applications;
     QSet<QProcess *> m_processes;
     QPointer<WaylandWindowTracker> m_windowTracker;
-    QHash<QString, QString> m_windowAppIdToPackage;
+    QHash<QString, QString> m_windowPackageMappings;
     QHash<QString, ObservedWindow> m_observedWindows;
     QHash<QString, QString> m_windowOwners;
 };
