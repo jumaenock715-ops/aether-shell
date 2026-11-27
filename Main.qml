@@ -157,7 +157,7 @@ Window {
     Connections {
         target: Notifications
         function onPushed(title, body) {
-            if (System.dnd || win.notifOpen) return
+            if (SessionSettings.doNotDisturb || win.notifOpen) return
             toast.heading = title; toast.message = body
             toast.opacity = 1; toastTimer.restart()
         }
