@@ -5,6 +5,7 @@
 #include "NotificationService.h"
 #include "SessionManager.h"
 #include "SessionSettings.h"
+#include "WaydroidRuntimeAdapter.h"
 #include "AppCatalog.h"
 
 int main(int argc, char *argv[])
@@ -20,7 +21,9 @@ int main(int argc, char *argv[])
     NotificationService notificationService;
     SessionManager sessionManager;
     SessionSettings sessionSettings;
+    WaydroidRuntimeAdapter androidRuntimeAdapter;
     applicationService.setSessionManager(&sessionManager);
+    applicationService.setAndroidRuntimeAdapter(&androidRuntimeAdapter);
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("aethericon", new IconProvider);
