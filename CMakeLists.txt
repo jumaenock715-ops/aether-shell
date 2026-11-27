@@ -7,7 +7,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.5 REQUIRED COMPONENTS Quick)
 qt_standard_project_setup(REQUIRES 6.5)
 
-qt_add_executable(aether-shell main.cpp AppCatalog.cpp AppCatalog.h)
+qt_add_executable(aether-shell
+    main.cpp
+    ApplicationService.cpp
+    ApplicationService.h
+    AppCatalog.cpp
+    AppCatalog.h
+)
 
 # Singletons must be flagged before the QML module is created.
 set_source_files_properties(
