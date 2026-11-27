@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include "ApplicationService.h"
+#include "NotificationService.h"
 #include "AppCatalog.h"
 
 int main(int argc, char *argv[])
@@ -12,10 +13,14 @@ int main(int argc, char *argv[])
     ApplicationService applicationService;
     applicationService.reload();
 
+    NotificationService notificationService;
+
     QQmlApplicationEngine engine;
     engine.addImageProvider("aethericon", new IconProvider);
     // Keep the existing QML-facing name so the current launcher needs no redesign.
     engine.rootContext()->setContextProperty("AppCatalog", &applicationService);
+    // Preserve the existing Notifications QML API while moving its model into C++.
+    engine.rootContext()->setContextProperty("Notifications", &notificationService);
     // Non-empty only in CI: enables the automated click-through that saves screenshots.
     engine.rootContext()->setContextProperty("demoDir", QString::fromLocal8Bit(qgetenv("AETHER_DEMO_DIR")));
 
