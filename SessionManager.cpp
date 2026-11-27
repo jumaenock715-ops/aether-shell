@@ -1,6 +1,7 @@
 #include "SessionManager.h"
 
 #include <QFileInfo>
+#include <QTimer>
 
 SessionManager::SessionManager(QObject *parent)
     : QAbstractListModel(parent)
@@ -12,6 +13,15 @@ SessionManager::~SessionManager()
     for (const Instance &instance : m_instances) {
         if (instance.process) {
             instance.process->disconnect(this);
+            if (instance.process->state() != QProcess::NotRunning)
+                instance.process->terminate();
+        }
+    }
+
+    for (const Instance &instance : m_instances) {
+        if (instance.process &&
+            instance.process->state() != QProcess::NotRunning &&
+            !instance.process->waitForFinished(1500)) {
             instance.process->kill();
             instance.process->waitForFinished(1000);
         }
@@ -133,17 +143,37 @@ void SessionManager::removeProcess(QProcess *process)
 
 void SessionManager::terminate(const QString &desktopId)
 {
-    for (const Instance &instance : m_instances) {
-        if (instance.desktopId == desktopId && instance.process &&
-            instance.process->state() != QProcess::NotRunning)
-            instance.process->terminate();
+    for (int i = 0; i < m_instances.size(); ++i) {
+        Instance &instance = m_instances[i];
+        if (instance.desktopId != desktopId || !instance.process ||
+            instance.process->state() == QProcess::NotRunning)
+            continue;
+
+        instance.state = QStringLiteral("stopping");
+        emit dataChanged(index(i, 0), index(i, 0), {StateRole});
+        QProcess *process = instance.process;
+        process->terminate();
+        QTimer::singleShot(3000, process, [process]() {
+            if (process->state() != QProcess::NotRunning)
+                process->kill();
+        });
     }
 }
 
 void SessionManager::terminateAll()
 {
-    for (const Instance &instance : m_instances) {
-        if (instance.process && instance.process->state() != QProcess::NotRunning)
-            instance.process->terminate();
+    for (int i = 0; i < m_instances.size(); ++i) {
+        Instance &instance = m_instances[i];
+        if (!instance.process || instance.process->state() == QProcess::NotRunning)
+            continue;
+
+        instance.state = QStringLiteral("stopping");
+        emit dataChanged(index(i, 0), index(i, 0), {StateRole});
+        QProcess *process = instance.process;
+        process->terminate();
+        QTimer::singleShot(3000, process, [process]() {
+            if (process->state() != QProcess::NotRunning)
+                process->kill();
+        });
     }
 }
