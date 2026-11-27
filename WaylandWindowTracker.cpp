@@ -83,6 +83,11 @@ bool WaylandWindowTracker::start()
         stop();
         return false;
     }
+    if (!m_manager) {
+        setStatus(QStringLiteral("finished"));
+        stop();
+        return false;
+    }
 
     m_readNotifier = new QSocketNotifier(
         wl_display_get_fd(m_display), QSocketNotifier::Read, this);
@@ -211,6 +216,14 @@ void WaylandWindowTracker::managerFinished(
     if (self->m_manager == manager) {
         ext_foreign_toplevel_list_v1_destroy(self->m_manager);
         self->m_manager = nullptr;
+    }
+    const auto handles = self->m_windows.keys();
+    for (ext_foreign_toplevel_handle_v1 *handle : handles) {
+        const WindowState state = self->m_windows.take(handle);
+        if (state.announced)
+            emit self->windowChanged(state.appId, state.windowId,
+                                     state.title, QStringLiteral("closed"));
+        ext_foreign_toplevel_handle_v1_destroy(handle);
     }
     self->setStatus(QStringLiteral("finished"));
     emit self->diagnostic(QStringLiteral("The compositor ended the toplevel-list stream."));
