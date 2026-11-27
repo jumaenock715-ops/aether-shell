@@ -84,7 +84,7 @@ Current request states are:
 - `launch-failed` — the adapter reported a target-correlated failure;
 - `runtime-stopped` — the adapter confirmed completion of a user-session stop request.
 
-`activityState` intentionally remains `unknown`. The current Waydroid command interface integrated here does not provide authoritative per-activity start/stop/foreground/exit events. The manager therefore does not fabricate Android process IDs, infer activity lifetime from the CLI process, or expose an unsupported per-app stop operation. A future window/lifecycle bridge must supply those events before Aether can display truthful running/paused/stopped states or manage individual Android app termination.
+`activityState` intentionally remains `unknown` with the current Waydroid adapter. The provider-neutral adapter contract now includes an `applicationLifecycleChanged(packageName, state)` event for a future integration layer to report `started`, `foreground`, `background`, `stopped`, or `crashed`. The manager maps only those explicit provider events into activity states. The current Waydroid CLI backend does not emit this signal, so it does not fabricate Android process IDs, infer activity lifetime from the CLI process, or expose an unsupported per-app stop operation. A future window/lifecycle bridge must supply those events before Aether can display truthful running/paused/stopped states or manage individual Android app termination.
 
 ### Android runtime adapter contract
 
