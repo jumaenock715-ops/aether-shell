@@ -37,5 +37,7 @@ signals:
     void applicationsChanged();
     void runtimeStateChanged();
     void operationFailed(const QString &operation, const QString &reason);
+    void operationFailedForTarget(const QString &operation, const QString &target,
+                                  const QString &reason);
     void operationFinished(const QString &operation, const QString &target);
 };
