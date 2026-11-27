@@ -7,6 +7,7 @@
 #include "AndroidSessionManager.h"
 #include "SessionSettings.h"
 #include "WaydroidRuntimeAdapter.h"
+#include "WaylandWindowTracker.h"
 #include "AppCatalog.h"
 
 int main(int argc, char *argv[])
@@ -22,7 +23,9 @@ int main(int argc, char *argv[])
     NotificationService notificationService;
     SessionManager sessionManager;
     SessionSettings sessionSettings;
+    WaylandWindowTracker waylandWindowTracker;
     WaydroidRuntimeAdapter androidRuntimeAdapter;
+    androidRuntimeAdapter.setWindowTracker(&waylandWindowTracker);
     AndroidSessionManager androidSessionManager(&androidRuntimeAdapter);
     applicationService.setSessionManager(&sessionManager);
     applicationService.setAndroidRuntimeAdapter(&androidRuntimeAdapter);
@@ -37,6 +40,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("SessionManager", &sessionManager);
     engine.rootContext()->setContextProperty("SessionSettings", &sessionSettings);
     engine.rootContext()->setContextProperty("AndroidRuntime", &androidRuntimeAdapter);
+    engine.rootContext()->setContextProperty("WaylandWindowTracker", &waylandWindowTracker);
     engine.rootContext()->setContextProperty("AndroidSessions", &androidSessionManager);
     // Non-empty only in CI: enables the automated click-through that saves screenshots.
     engine.rootContext()->setContextProperty("demoDir", QString::fromLocal8Bit(qgetenv("AETHER_DEMO_DIR")));
@@ -45,5 +49,8 @@ int main(int argc, char *argv[])
                      &app, []() { QCoreApplication::exit(-1); },
                      Qt::QueuedConnection);
     engine.loadFromModule("Aether", "Main");
+    // Tracking is best-effort and read-only; an unsupported compositor does
+    // not prevent the existing shell from starting.
+    waylandWindowTracker.start();
     return app.exec();
 }
