@@ -2,15 +2,16 @@
 
 #include <QAbstractListModel>
 #include <QPointer>
+#include <QSet>
+#include <QStringList>
 #include <QVariantList>
 #include <QVector>
 
 class AndroidRuntimeAdapter;
 
-// Tracks Android launch requests without pretending that the Waydroid CLI
-// process is the lifetime of the Android activity. Waydroid currently gives
-// this layer command completion, not authoritative per-activity lifecycle
-// events, so activityState remains "unknown" until a real event bridge exists.
+// Tracks Android launch requests separately from native Linux processes.
+// Activity state is populated only by explicit runtime lifecycle events.
+// Window state is a separate view derived only from compositor window events.
 class AndroidSessionManager final : public QAbstractListModel
 {
     Q_OBJECT
@@ -23,7 +24,10 @@ public:
         StateRole,
         ActivityStateRole,
         LastRequestedRole,
-        DetailRole
+        DetailRole,
+        WindowStateRole,
+        WindowCountRole,
+        ActiveWindowCountRole
     };
     Q_ENUM(Role)
 
@@ -52,10 +56,14 @@ private:
         QString activityState = QStringLiteral("unknown");
         QString lastRequested;
         QString detail;
+        QString windowState = QStringLiteral("unknown");
+        QSet<QString> windows;
+        QSet<QString> activeWindows;
     };
 
     int indexOf(const QString &packageName) const;
     void updateRecord(int row, const QString &state, const QString &detail);
+    void updateWindowRecord(int row, const QString &windowState);
 
     QPointer<AndroidRuntimeAdapter> m_adapter;
     QVector<SessionRecord> m_records;
