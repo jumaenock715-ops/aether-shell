@@ -12,6 +12,20 @@ Controls are interface demonstrations; they are not yet connected to hardware se
 - Floating, draggable app windows (close, maximise, double-click title bar, focus/raise)
 - Settings app: dark/light theme, accent colour, display, network, about
 
+## Application service
+
+The C++ `ApplicationService` discovers application desktop entries from XDG application directories and exposes metadata through the existing `AppCatalog` context property. The QML launcher retains its current interface.
+
+The service currently:
+- searches application directories recursively;
+- derives desktop IDs from relative paths;
+- honours higher-priority desktop-entry masking and basic visibility rules;
+- checks `TryExec` and the launch executable;
+- expands common desktop-entry launch field codes for launches without a file/URL context;
+- launches with `QProcess` directly, without invoking a shell.
+
+Terminal-based desktop entries and file/URL launch contexts are not yet supported. Full desktop-entry localization and specification conformance remain future work.
+
 ## Build (Ubuntu / Debian)
     sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev \
          qml6-module-qtquick qml6-module-qtquick-window
@@ -24,6 +38,8 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 ## Layout
 - `Main.qml` shell root and window management
 - `Theme.qml`, `Apps.qml`, `System.qml`, `Notifications.qml` singletons (shared state)
-- `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter` shell components
-- `AppWindow`, `SettingsApp`, `PlaceholderApp` window frame and app content
-- `System.qml` is the future bridge to real Aether system services (C++/Rust)
+- `ApplicationService.cpp/.h`: session-level installed-application discovery and launch service
+- `AppCatalog.cpp/.h`: themed icon image provider
+- `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
+- `AppWindow`, `SettingsApp`, `PlaceholderApp`: window frame and app content
+- `System.qml` is still demonstration state; hardware/system integration is not implemented
