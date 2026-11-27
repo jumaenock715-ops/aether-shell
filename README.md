@@ -44,7 +44,15 @@ The Linux provider currently:
 
 Terminal-based desktop entries and file/URL launch contexts are not yet supported. Full desktop-entry localization and specification conformance remain future work.
 
-The Android provider has a concrete Waydroid adapter. When the `waydroid` executable is installed, it asynchronously requests the installed-app list and supports app launch, APK install/remove, and user-session start/stop operations. Launching an Android app automatically requests a user session first when one is not already marked running. Settings exposes session start/stop, refresh, and status controls. The launcher still uses the same unified `AppCatalog.launch(appId)` API. If Waydroid is absent, the provider reports itself unavailable and contributes no Android entries. The adapter does not install Waydroid, initialize an Android image, configure the host kernel, or provide Android window/service bridges. App listing depends on a live Waydroid session, and live behaviour has not yet been tested.
+The Android provider has a concrete Waydroid adapter. When the `waydroid` executable is installed, it asynchronously requests the installed-app list and supports app launch, APK install/remove, and user-session start/stop operations. Launching an Android app automatically requests a user session first when one is not already marked running. Settings exposes session start/stop, refresh, and status controls. The launcher still uses the same unified `AppCatalog.launch(appId)` API. If Waydroid is absent, the provider reports itself unavailable and contributes no Android entries. The adapter does not install Waydroid, initialize an Android image, configure the host kernel, or provide Android notification/service bridges. App listing depends on a live Waydroid session, and live behaviour has not yet been tested.
+
+## Wayland window tracking and Android identity
+
+`WaylandWindowTracker` opens a separate Wayland client connection and discovers `ext-foreign-toplevel-list-v1` at runtime. It reports mapped-window creation, metadata updates, and closure without attempting to control other applications' windows. This protocol does not report activation, so active/foreground state is not inferred.
+
+The Waydroid adapter accepts explicit `app_id`-to-package mappings through `registerWindowAppIdMapping()`. A mapping is accepted only when the Android package identifier is valid and the package exists in the current installed-app catalogue. Unmapped windows are reported as unassociated; window titles are never used to guess package identity. The mapping registry is currently in-memory and awaits a trusted Waydroid/Android surface-metadata source. The wlr foreign-toplevel protocol fallback is not implemented yet.
+
+Window tracking is optional at build time. If `libwayland-dev` and `libwayland-bin` are available, CMake generates the protocol bindings and links `wayland-client`. Otherwise the shell still builds without this feature and the tracker reports `unsupported-build`.
 
 ## Build (Ubuntu / Debian)
     sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev \
@@ -63,7 +71,7 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 - `SessionManager.cpp/.h`: application process lifecycle tracking
 - `ApplicationService.cpp/.h`: unified catalogue and provider-based launch dispatcher (Linux and optional Waydroid providers)
 - `AndroidRuntimeAdapter.h`: Android runtime provider interface
-- `WaydroidRuntimeAdapter.cpp/.h`: asynchronous Waydroid CLI adapter for package discovery and app/session operations
+- `WaydroidRuntimeAdapter.cpp/.h`: asynchronous Waydroid CLI adapter and explicit Android window identity resolver\n- `WaylandWindowTracker.cpp/.h`: read-only foreign-toplevel observer\n- `protocols/ext-foreign-toplevel-list-v1.xml`: vendored Wayland protocol definition
 - `AppCatalog.cpp/.h`: themed icon image provider
 - `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
 - `AppWindow`, `SettingsApp`, `PlaceholderApp`: window frame and app content
