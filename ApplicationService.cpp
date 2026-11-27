@@ -157,7 +157,7 @@ void ApplicationService::setAndroidSessionManager(AndroidSessionManager *manager
     if (!m_androidSessionManager)
         return;
 
-    connect(m_androidSessionManager, &AndroidSessionManager::launchRequested,
+    connect(m_androidSessionManager, &AndroidSessionManager::launchCommandCompleted,
             this, [this](const QString &packageName) {
         emit launchStarted(QStringLiteral("android:") + packageName);
     });
