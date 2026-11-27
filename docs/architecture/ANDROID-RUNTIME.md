@@ -58,7 +58,7 @@ Decision: design a replaceable provider interface now; make the final runtime se
                                     APK applications
 ```
 
-The diagram describes intended boundaries, not implemented components.
+The diagram describes the intended provider boundaries. The initial Android session manager described below is now present in source.
 
 ### Unified application record
 
@@ -73,6 +73,18 @@ Each catalogue entry should have a stable Aether identifier and at least:
 - provider capabilities.
 
 Provider-specific metadata should remain available without making QML depend on provider-specific structures.
+
+### Android application session tracking
+
+`AndroidSessionManager` is a provider-facing list model exposed to QML as `AndroidSessions`. It records one current launch record per package, including the display name, last request time, request state, explanatory detail, and an explicit `activityState` field.
+
+Current request states are:
+- `launch-requested` — Aether queued the request with the runtime adapter;
+- `launch-command-completed` — the Waydroid CLI command completed successfully; this does **not** prove that an Android activity is still running or visible;
+- `launch-failed` — the adapter reported a target-correlated failure;
+- `runtime-stopped` — the adapter confirmed completion of a user-session stop request.
+
+`activityState` intentionally remains `unknown`. The current Waydroid command interface integrated here does not provide authoritative per-activity start/stop/foreground/exit events. The manager therefore does not fabricate Android process IDs, infer activity lifetime from the CLI process, or expose an unsupported per-app stop operation. A future window/lifecycle bridge must supply those events before Aether can display truthful running/paused/stopped states or manage individual Android app termination.
 
 ### Android runtime adapter contract
 
@@ -171,7 +183,7 @@ Not implemented:
 - Binder/BinderFS configuration;
 - Waydroid installation and Android system image;
 - live Android package discovery and app operations have source implementations but remain untested; no confirmed working runtime is available;
-- Android app windows and lifecycle integration;
+- Android app window integration and authoritative per-activity lifecycle events (the initial launch-request ledger exists, but does not track actual activity lifetime);
 - Android notification, clipboard, file, audio, or input bridges;
 - ARM native-library translation.
 
@@ -180,6 +192,7 @@ Existing code:
 - unified application catalogue/dispatch structure with Linux XDG discovery and a concrete, optional Waydroid adapter;
 - preliminary Linux process launch;
 - in-process notification model;
-- preliminary Linux process tracking.
+- preliminary Linux process tracking;
+- `AndroidSessionManager` launch-request tracking with target-correlated command success/failure and explicit unknown activity state.
 
-The Waydroid adapter invokes the documented `waydroid app list/install/remove/launch` and `waydroid session start/stop` commands as separate QProcess arguments; it never constructs a shell command. Its application-list parser follows the current Waydroid CLI source format (`Name`, `packageName`, `categories`). The adapter's `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. The Settings page exposes this state and lets the user request session start/stop and app-list refresh. Listing depends on a running Waydroid session. No runtime build, boot, or hardware test has been performed.
+The Waydroid adapter invokes the documented `waydroid app list/install/remove/launch` and `waydroid session start/stop` commands as separate QProcess arguments; it never constructs a shell command. Its target-aware failure signal lets `AndroidSessionManager` associate a failed launch/session-start operation with the package that requested it. Its application-list parser follows the current Waydroid CLI source format (`Name`, `packageName`, `categories`). The adapter's `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. The Settings page exposes this state and lets the user request session start/stop and app-list refresh. Listing depends on a running Waydroid session. No runtime build, boot, or hardware test has been performed. The Android session model is an initial request/outcome ledger, not a live Android activity tracker.
