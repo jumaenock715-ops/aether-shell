@@ -39,4 +39,10 @@ signals:
     void operationFailedForTarget(const QString &operation, const QString &target,
                                   const QString &reason);
     void operationFinished(const QString &operation, const QString &target);
+
+    // Optional provider event contract. A runtime/window bridge may emit
+    // started, foreground, background, stopped, or crashed. A provider that
+    // cannot observe real activity state must not emit guessed transitions.
+    void applicationLifecycleChanged(const QString &packageName,
+                                     const QString &lifecycleState);
 };
