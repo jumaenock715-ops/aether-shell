@@ -61,7 +61,7 @@ Window tracking is optional at build time. If `libwayland-dev` and `libwayland-b
     cmake --build build -j
     ./build/aether-shell
 
-Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland ./build/aether-shell`.
+Needs Qt 6.5 or newer (for loadFromModule). Optional foreign-toplevel tracking: install `libwayland-dev` and `libwayland-bin` before configuring CMake. On Wayland: `QT_QPA_PLATFORM=wayland ./build/aether-shell`.
 
 ## Layout
 - `Main.qml` shell root and window management
