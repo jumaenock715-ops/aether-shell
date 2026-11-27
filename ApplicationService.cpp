@@ -139,7 +139,9 @@ void ApplicationService::setAndroidRuntimeAdapter(AndroidRuntimeAdapter *adapter
                 this, &ApplicationService::reload);
         connect(m_androidAdapter, &AndroidRuntimeAdapter::operationFailed,
                 this, [this](const QString &operation, const QString &reason) {
-            emit launchFailed(operation, reason);
+            if (operation != QStringLiteral("launch") &&
+                operation != QStringLiteral("session-start"))
+                emit launchFailed(operation, reason);
         });
     }
     reload();
