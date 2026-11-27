@@ -3,7 +3,7 @@ import QtQuick
 Item {
     id: root
     property int page: 0
-    readonly property var pages: ["Appearance", "Display", "Network", "About"]
+    readonly property var pages: ["Appearance", "Display", "Network", "Android", "About"]
     readonly property var accents: ["#6D4AFF", "#14B8D4", "#3DDC97", "#FF5C7A", "#FFB020"]
 
     Rectangle {
@@ -81,9 +81,66 @@ Item {
             Text { text: "Demo toggles. Real networking arrives with the Aether system services."; color: Theme.textDim; font.pixelSize: 12 }
         }
 
+        // Android runtime
+        Column {
+            visible: root.page === 3; spacing: 14; width: parent.width
+            Text { text: "Android runtime"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap
+                text: AndroidRuntime.available
+                    ? "Waydroid command-line tools detected."
+                    : "Waydroid is not installed or is not available in the system PATH."
+                color: Theme.text; font.pixelSize: 13
+            }
+            Text {
+                text: "Session state: " + AndroidRuntime.runtimeState
+                color: Theme.textDim; font.pixelSize: 12
+            }
+            Row {
+                spacing: 10
+                Rectangle {
+                    width: 112; height: 36; radius: 8
+                    color: AndroidRuntime.available ? Theme.accent : Theme.surface
+                    opacity: AndroidRuntime.available ? 1.0 : 0.45
+                    Text { anchors.centerIn: parent; text: "Start session"; color: "white"; font.pixelSize: 12 }
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: AndroidRuntime.available
+                        onClicked: AndroidRuntime.requestStartRuntime()
+                    }
+                }
+                Rectangle {
+                    width: 112; height: 36; radius: 8
+                    color: Theme.surface; border.color: Theme.border
+                    opacity: AndroidRuntime.available ? 1.0 : 0.45
+                    Text { anchors.centerIn: parent; text: "Stop session"; color: Theme.text; font.pixelSize: 12 }
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: AndroidRuntime.available
+                        onClicked: AndroidRuntime.requestStopRuntime()
+                    }
+                }
+                Rectangle {
+                    width: 92; height: 36; radius: 8
+                    color: Theme.surface; border.color: Theme.border
+                    Text { anchors.centerIn: parent; text: "Refresh apps"; color: Theme.text; font.pixelSize: 12 }
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: AndroidRuntime.available
+                        onClicked: AndroidRuntime.refreshApplications()
+                    }
+                }
+            }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap
+                text: "Android applications appear in the launcher when a Waydroid session is available. This control does not install Waydroid or initialize its Android image."
+                color: Theme.textDim; font.pixelSize: 11
+            }
+        }
+
         // About
         Column {
-            visible: root.page === 3; spacing: 10; width: parent.width
+            visible: root.page === 4; spacing: 10; width: parent.width
             Text { text: "About"; color: Theme.text; font.pixelSize: 18; font.bold: true }
             Text { text: "Aether Shell 0.1 (prototype)"; color: Theme.text; font.pixelSize: 14 }
             Text { text: "Qt " + Qt.platform.os + " build"; color: Theme.textDim; font.pixelSize: 12 }
