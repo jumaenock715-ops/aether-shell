@@ -4,6 +4,9 @@
 #include <QHash>
 #include <QStringList>
 #include <QVariantList>
+#include <QPointer>
+
+class AndroidRuntimeAdapter;
 
 class SessionManager;
 
@@ -20,6 +23,7 @@ public:
     QVariantList apps() const { return m_apps; }
 
     void setSessionManager(SessionManager *sessionManager);
+    void setAndroidRuntimeAdapter(AndroidRuntimeAdapter *adapter);
 
     Q_INVOKABLE void reload();
     Q_INVOKABLE bool launch(const QString &desktopId);
@@ -39,4 +43,5 @@ private:
     QVariantList m_apps;
     QHash<QString, LaunchEntry> m_launchEntries;
     SessionManager *m_sessionManager = nullptr;
+    QPointer<AndroidRuntimeAdapter> m_androidAdapter;
 };
