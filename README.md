@@ -71,7 +71,8 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 - `SessionManager.cpp/.h`: application process lifecycle tracking
 - `ApplicationService.cpp/.h`: unified catalogue and provider-based launch dispatcher (Linux and optional Waydroid providers)
 - `AndroidRuntimeAdapter.h`: Android runtime provider interface
-- `WaydroidRuntimeAdapter.cpp/.h`: asynchronous Waydroid CLI adapter and explicit Android window identity resolver\n- `WaylandWindowTracker.cpp/.h`: read-only foreign-toplevel observer\n- `protocols/ext-foreign-toplevel-list-v1.xml`: vendored Wayland protocol definition
+- `WaydroidRuntimeAdapter.cpp/.h`: asynchronous Waydroid CLI adapter and explicit Android window identity resolver
+- `WaylandWindowTracker.cpp/.h`: read-only foreign-toplevel observer\n- `protocols/ext-foreign-toplevel-list-v1.xml`: vendored Wayland protocol definition
 - `AppCatalog.cpp/.h`: themed icon image provider
 - `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
 - `AppWindow`, `SettingsApp`, `PlaceholderApp`: window frame and app content
