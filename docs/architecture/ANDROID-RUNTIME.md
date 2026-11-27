@@ -156,7 +156,7 @@ A LineageOS/AOSP-derived runtime does not automatically include licensed Google 
 1. Architecture and provider interface — documented.
 2. Session Settings persistence — initial dark-mode and accent-colour persistence is implemented; extend the service and validate migrations.
 3. Unified application record and dispatcher — first catalogue and provider-dispatch structure is implemented without changing the launcher visuals.
-4. Runtime adapter skeleton — the Android provider interface is committed; no assumption that Waydroid is installed.
+4. Runtime adapter skeleton — the Android provider interface is committed and remains independent of whether Waydroid is installed.
 5. Waydroid CLI backend — initial asynchronous app-list, launch, APK install/remove, and user-session start/stop adapter is implemented. Runtime installation, image initialization, kernel configuration, and validation remain outstanding.
 6. Notification, clipboard, file, audio, input, and window bridges.
 7. Debian packaging and kernel configuration.
