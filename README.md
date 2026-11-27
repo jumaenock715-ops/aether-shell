@@ -20,9 +20,9 @@ This is a first session-level process tracker, not yet a complete desktop-sessio
 
 ## Session settings
 
-The C++ `SessionSettings` service persists the appearance preferences used by the existing shell. Dark/light mode and accent colour are stored through Qt's `QSettings` backend, loaded at startup, and exposed as typed properties to the existing `Theme` singleton. The Settings app and quick-settings dark-mode control use this service without changing the interface design. A schema version is recorded for future preference migrations.
+The C++ `SessionSettings` service persists the appearance preferences used by the existing shell. Dark/light mode, accent colour, and do-not-disturb are stored through Qt's `QSettings` backend, loaded at startup, and exposed as typed properties to the shell. The Settings app and quick-settings dark-mode control use this service without changing the interface design. A schema version is recorded for future preference migrations.
 
-This is the first persistence slice, not the complete settings system. Display brightness, Wi-Fi, Bluetooth, do-not-disturb, shell layout, startup preferences, and Android-specific settings are not yet persisted or connected to real system services.
+This is an early persistence slice, not the complete settings system. Display brightness, Wi-Fi, Bluetooth, shell layout, startup preferences, and Android-specific preferences are not yet persisted or connected to real system services. Do-not-disturb is a user notification preference; it suppresses toast presentation but does not control an external notification daemon.
 
 ## Notification service
 
