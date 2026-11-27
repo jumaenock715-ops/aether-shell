@@ -143,6 +143,37 @@ Item {
                 text: "Android applications appear in the launcher when a Waydroid session is available. This control does not install Waydroid or initialize its Android image."
                 color: Theme.textDim; font.pixelSize: 11
             }
+            Text {
+                text: "Android launch requests"
+                color: Theme.text; font.pixelSize: 13; font.bold: true
+            }
+            Column {
+                width: parent.width; spacing: 7
+                Repeater {
+                    model: AndroidSessions
+                    delegate: Column {
+                        required property string name
+                        required property string state
+                        required property string activityState
+                        width: parent.width; spacing: 2
+                        Text {
+                            width: parent.width; wrapMode: Text.WordWrap
+                            text: name + " — " + state
+                            color: Theme.text; font.pixelSize: 12
+                        }
+                        Text {
+                            width: parent.width; wrapMode: Text.WordWrap
+                            text: "Activity state: " + activityState
+                            color: Theme.textDim; font.pixelSize: 10
+                        }
+                    }
+                }
+                Text {
+                    visible: AndroidSessions.count === 0
+                    text: "No Android launch requests recorded in this session."
+                    color: Theme.textDim; font.pixelSize: 11
+                }
+            }
         }
 
         // About
