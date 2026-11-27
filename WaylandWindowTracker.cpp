@@ -119,6 +119,10 @@ void WaylandWindowTracker::stop()
 
     const auto handles = m_windows.keys();
     for (ext_foreign_toplevel_handle_v1 *handle : handles) {
+        const WindowState state = m_windows.value(handle);
+        if (state.announced)
+            emit windowChanged(state.appId, state.windowId,
+                               state.title, QStringLiteral("closed"));
         if (handle)
             ext_foreign_toplevel_handle_v1_destroy(handle);
     }
