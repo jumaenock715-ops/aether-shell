@@ -58,7 +58,6 @@ private:
     void dispatchPending();
     bool armRead();
     void handleReadable();
-    void handleRegistryGlobal(const char *interface, quint32 name, quint32 version);
     void publishWindow(ext_foreign_toplevel_handle_v1 *handle, const QString &eventState);
 
     wl_display *m_display = nullptr;
