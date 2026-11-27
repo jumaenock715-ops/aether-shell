@@ -1,6 +1,6 @@
 # Aether OS Core Services — Architecture Foundation
 
-**Status:** Design foundation; implementation has not started.  
+**Status:** Initial session-service implementation in progress.  
 **Target base:** Debian initially; Yocto integration remains preserved separately.  
 **Current shell:** Existing Qt 6 / QML Aether Shell.
 
@@ -74,14 +74,15 @@ Operations that can fail must return a result and useful error information. A UI
 
 - `System.qml` currently contains demonstration properties for Wi-Fi, Bluetooth, do-not-disturb, brightness, and battery. These are placeholders, not hardware integration.
 - `AppCatalog.cpp` currently discovers XDG desktop entries and launches their commands. This is the beginning of the application-catalog responsibility; it will need hardening and richer metadata before being treated as a system-wide application service.
-- `Notifications.qml` currently provides shell-level notification state. A later notification adapter can connect it to the desktop notification service.
+- `NotificationService.cpp/.h` now provides the in-process notification model; a later adapter can connect it to the desktop notification service.
+- `SessionManager.cpp/.h` now tracks launched application processes; it is not yet a full login/session supervisor.
 - `main.cpp` currently constructs the shell and its application catalog. Service adapters can be introduced incrementally without replacing the QML interface.
 
 ## Implementation sequence
 
 1. **Define service contracts and data types.** Keep responsibilities and privilege boundaries explicit.
 2. **Extract shell-facing adapters.** Keep QML dependent on stable interfaces rather than Linux implementation details.
-3. **Implement session-level services first.** Start with application metadata/launching and notification integration.
+3. **Implement session-level services first.** Application discovery/launching, in-process notifications, and initial process lifecycle tracking are now present; continue with session settings and desktop notification integration.
 4. **Integrate existing Linux system managers.** Add network, power, and display providers one domain at a time.
 5. **Add persistence, authorization, and error handling.**
 6. **Package for Debian.** This is a later integration stage, not a prerequisite for source development.
