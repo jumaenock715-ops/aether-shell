@@ -61,7 +61,7 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 - `SessionSettings.cpp/.h`: persistent user appearance preferences
 - `NotificationService.cpp/.h`: session notification model exposed to QML
 - `SessionManager.cpp/.h`: application process lifecycle tracking
-- `ApplicationService.cpp/.h`: unified catalogue and provider-based launch dispatcher (Linux provider active; Android adapter hook defined)
+- `ApplicationService.cpp/.h`: unified catalogue and provider-based launch dispatcher (Linux and optional Waydroid providers)
 - `AndroidRuntimeAdapter.h`: Android runtime provider interface
 - `WaydroidRuntimeAdapter.cpp/.h`: asynchronous Waydroid CLI adapter for package discovery and app/session operations
 - `AppCatalog.cpp/.h`: themed icon image provider
