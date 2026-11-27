@@ -108,6 +108,10 @@ void WaylandWindowTracker::stop()
         m_readNotifier = nullptr;
     }
 
+    if (m_display && m_readPrepared) {
+        wl_display_cancel_read(m_display);
+        m_readPrepared = false;
+    }
     if (m_display && m_manager) {
         ext_foreign_toplevel_list_v1_stop(m_manager);
         wl_display_roundtrip(m_display);
@@ -204,8 +208,8 @@ void WaylandWindowTracker::managerFinished(
         ext_foreign_toplevel_list_v1_destroy(self->m_manager);
         self->m_manager = nullptr;
     }
-    setStatus(QStringLiteral("finished"));
-    emit diagnostic(QStringLiteral("The compositor ended the toplevel-list stream."));
+    self->setStatus(QStringLiteral("finished"));
+    emit self->diagnostic(QStringLiteral("The compositor ended the toplevel-list stream."));
 }
 
 void WaylandWindowTracker::handleClosed(
@@ -312,6 +316,7 @@ bool WaylandWindowTracker::armRead()
         return false;
     }
 
+    m_readPrepared = true;
     m_readNotifier->setEnabled(true);
     return true;
 #else
@@ -327,11 +332,13 @@ void WaylandWindowTracker::handleReadable()
 
     m_readNotifier->setEnabled(false);
     if (wl_display_read_events(m_display) < 0) {
+        m_readPrepared = false;
         setStatus(QStringLiteral("error"));
         emit diagnostic(QStringLiteral("Reading Wayland events failed."));
         stop();
         return;
     }
+    m_readPrepared = false;
 
     dispatchPending();
     if (m_display && m_readNotifier && !armRead()) {
