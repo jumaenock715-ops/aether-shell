@@ -17,6 +17,8 @@ class QProcess;
 class WaydroidRuntimeAdapter final : public AndroidRuntimeAdapter
 {
     Q_OBJECT
+    Q_PROPERTY(QString runtimeState READ runtimeState NOTIFY runtimeStateChanged)
+    Q_PROPERTY(bool available READ isAvailable CONSTANT)
 
 public:
     explicit WaydroidRuntimeAdapter(QObject *parent = nullptr);
@@ -36,6 +38,8 @@ public:
                        QString *error = nullptr) override;
 
     Q_INVOKABLE void refreshApplications();
+    Q_INVOKABLE bool requestStartRuntime() { return startRuntime(nullptr); }
+    Q_INVOKABLE bool requestStopRuntime() { return stopRuntime(nullptr); }
 
 private:
     using SuccessHandler = std::function<void(const QByteArray &)>;
