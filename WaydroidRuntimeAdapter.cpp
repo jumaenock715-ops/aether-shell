@@ -82,6 +82,9 @@ bool WaydroidRuntimeAdapter::runCommand(
                 onSuccess(output);
             emit operationFinished(operation, target);
         } else {
+            if (operation == QStringLiteral("session-start") ||
+                operation == QStringLiteral("session-stop"))
+                setRuntimeState(QStringLiteral("error"));
             emit operationFailed(operation, processErrorText(process));
         }
         process->deleteLater();
