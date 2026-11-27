@@ -162,13 +162,13 @@ A UI control must not optimistically claim that an operation succeeded before th
 - `AppCatalog.cpp/.h` provides the themed-icon image provider.
 - `NotificationService.cpp/.h` provides an in-process notification model; external D-Bus notification integration remains future work.
 - `SessionManager.cpp/.h` tracks launched Linux processes; it is not yet a complete login/session supervisor or Android lifecycle manager.
-- `SettingsApp.qml` currently changes in-memory theme and demo system values. Persistent Session Settings has not yet been implemented.
+- `SessionSettings.cpp/.h` now persists dark/light mode and accent colour through QSettings. The existing Settings UI uses the service for appearance preferences. Other settings categories and migrations remain future work.
 - `main.cpp` constructs the shell and current in-process services. These are not yet separate system daemons.
 
 ## Implementation sequence
 
 1. **Record the Android-first compatibility architecture and runtime adapter boundary.**
-2. **Implement Session Settings persistence** for theme/accent and a validated extensible preference store; connect the existing Settings UI without redesigning it.
+2. **Extend Session Settings persistence** beyond the initial theme/accent implementation; add validated preference groups, migration tests, and user-level settings without redesigning the existing UI.
 3. **Define the unified application model** so Android and Linux apps can coexist in the existing launcher.
 4. **Implement the Android runtime adapter contract** and a candidate Waydroid backend behind it. Keep runtime-specific details out of QML.
 5. **Extend Session Manager** to coordinate native process handles and Android runtime app handles.
