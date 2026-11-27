@@ -12,6 +12,12 @@ Controls are interface demonstrations; they are not yet connected to hardware se
 - Floating, draggable app windows (close, maximise, double-click title bar, focus/raise)
 - Settings app: dark/light theme, accent colour, display, network, about
 
+## Notification service
+
+The C++ `NotificationService` owns the session notification list and exposes it to QML through the existing `Notifications` context property. It preserves the current `items`, `count`, `push(title, body)`, `clear()`, and `pushed` interfaces, so the notification centre and badge do not need a visual rewrite.
+
+This is currently an in-process notification model. It does not yet receive notifications from other applications or publish them through the Linux desktop notification D-Bus interface.
+
 ## Application service
 
 The C++ `ApplicationService` discovers application desktop entries from XDG application directories and exposes metadata through the existing `AppCatalog` context property. The QML launcher retains its current interface.
@@ -37,7 +43,8 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 
 ## Layout
 - `Main.qml` shell root and window management
-- `Theme.qml`, `Apps.qml`, `System.qml`, `Notifications.qml` singletons (shared state)
+- `Theme.qml`, `Apps.qml`, `System.qml` QML singletons (shared state)
+- `NotificationService.cpp/.h`: session notification model exposed to QML
 - `ApplicationService.cpp/.h`: session-level installed-application discovery and launch service
 - `AppCatalog.cpp/.h`: themed icon image provider
 - `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
