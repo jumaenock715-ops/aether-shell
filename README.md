@@ -44,7 +44,7 @@ The Linux provider currently:
 
 Terminal-based desktop entries and file/URL launch contexts are not yet supported. Full desktop-entry localization and specification conformance remain future work.
 
-The Android adapter is currently an interface only. No Waydroid backend is connected or instantiated, so Android packages are not yet discovered or launchable. APK installation/removal methods are part of the provider contract but have no runtime implementation yet.
+The Android provider now has a concrete Waydroid adapter. When the `waydroid` executable is installed, it asynchronously requests the installed-app list and can dispatch app launch, APK install/remove, and user-session start/stop operations. The launcher still uses the same unified `AppCatalog.launch(appId)` API. If Waydroid is absent, the provider reports itself unavailable and contributes no Android entries. The adapter does not install Waydroid, initialize an Android image, configure the host kernel, or provide Android window/service bridges. App listing also depends on a live Waydroid session, and live behaviour has not yet been tested.
 
 ## Build (Ubuntu / Debian)
     sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev \
@@ -63,6 +63,7 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 - `SessionManager.cpp/.h`: application process lifecycle tracking
 - `ApplicationService.cpp/.h`: unified catalogue and provider-based launch dispatcher (Linux provider active; Android adapter hook defined)
 - `AndroidRuntimeAdapter.h`: Android runtime provider interface
+- `WaydroidRuntimeAdapter.cpp/.h`: asynchronous Waydroid CLI adapter for package discovery and app/session operations
 - `AppCatalog.cpp/.h`: themed icon image provider
 - `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
 - `AppWindow`, `SettingsApp`, `PlaceholderApp`: window frame and app content
