@@ -47,7 +47,7 @@ public:
     Q_INVOKABLE void refreshApplications();
 
     // Register only when a trusted runtime integration has established the
-    // app_id -> package relationship. The package must be installed.
+    // exact live Wayland window-ID -> Android package relationship.
     bool registerWindowPackageMapping(const QString &windowId,
                                       const QString &packageName,
                                     QString *error = nullptr);
