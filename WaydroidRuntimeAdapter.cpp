@@ -66,6 +66,7 @@ bool WaydroidRuntimeAdapter::runCommand(
     QString error;
     if (!ensureAvailable(&error)) {
         emit operationFailed(operation, error);
+        emit operationFailedForTarget(operation, target, error);
         return false;
     }
 
@@ -85,13 +86,15 @@ bool WaydroidRuntimeAdapter::runCommand(
             if (operation == QStringLiteral("session-start") ||
                 operation == QStringLiteral("session-stop"))
                 setRuntimeState(QStringLiteral("error"));
-            emit operationFailed(operation, processErrorText(process));
+            const QString reason = processErrorText(process);
+            emit operationFailed(operation, reason);
+            emit operationFailedForTarget(operation, target, reason);
         }
         process->deleteLater();
     });
 
     connect(process, &QProcess::errorOccurred, this,
-            [this, process, operation](QProcess::ProcessError processError) {
+            [this, process, operation, target](QProcess::ProcessError processError) {
         if (processError != QProcess::FailedToStart)
             return;
         m_processes.remove(process);
@@ -99,6 +102,7 @@ bool WaydroidRuntimeAdapter::runCommand(
             operation == QStringLiteral("session-stop"))
             setRuntimeState(QStringLiteral("error"));
         emit operationFailed(operation, process->errorString());
+        emit operationFailedForTarget(operation, target, process->errorString());
         process->deleteLater();
     });
 
