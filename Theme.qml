@@ -2,8 +2,8 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    property bool dark: true
-    property color accent: "#6D4AFF"
+    readonly property bool dark: SessionSettings.darkMode
+    readonly property color accent: SessionSettings.accentColor
     readonly property color accent2: "#14B8D4"
 
     readonly property color bg: dark ? "#0B1020" : "#E9ECF8"
