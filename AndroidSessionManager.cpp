@@ -83,21 +83,29 @@ AndroidSessionManager::AndroidSessionManager(AndroidRuntimeAdapter *adapter,
             record.activeWindows.remove(windowId);
         } else if (eventState == QStringLiteral("activated")) {
             record.windows.insert(windowId);
+            record.activationKnown = true;
             record.activeWindows.insert(windowId);
         } else if (eventState == QStringLiteral("deactivated")) {
-            if (record.windows.contains(windowId))
+            if (record.windows.contains(windowId)) {
+                record.activationKnown = true;
                 record.activeWindows.remove(windowId);
+            }
         } else if (eventState == QStringLiteral("closed")) {
             record.windows.remove(windowId);
             record.activeWindows.remove(windowId);
+            if (record.windows.isEmpty())
+                record.activationKnown = false;
         } else {
             return;
         }
 
         QString windowState = QStringLiteral("closed");
         if (!record.windows.isEmpty()) {
-            windowState = record.activeWindows.isEmpty()
-                ? QStringLiteral("background") : QStringLiteral("foreground");
+            if (!record.activeWindows.isEmpty())
+                windowState = QStringLiteral("foreground");
+            else
+                windowState = record.activationKnown
+                    ? QStringLiteral("background") : QStringLiteral("mapped");
         }
         updateWindowRecord(row, windowState);
     });
@@ -111,6 +119,7 @@ AndroidSessionManager::AndroidSessionManager(AndroidRuntimeAdapter *adapter,
                 m_records[i].activityState = QStringLiteral("unknown");
                 m_records[i].windows.clear();
                 m_records[i].activeWindows.clear();
+                m_records[i].activationKnown = false;
                 updateRecord(i, QStringLiteral("runtime-stopped"),
                              QStringLiteral("The Android user session was stopped. "
                                             "Per-activity state is not available."));
