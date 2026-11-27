@@ -30,9 +30,9 @@ Window {
     }
 
     function launchApp(app) {
-        if (app.kind === "system") {
+        if (app.kind === "system" || app.kind === "android") {
             closePopups()
-            if (AppCatalog.launch(app.desktopId))
+            if (AppCatalog.launch(app.appId))
                 Notifications.push("Launching", app.name)
             else
                 Notifications.push("Could not launch", app.name)
