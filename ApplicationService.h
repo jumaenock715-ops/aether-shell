@@ -7,6 +7,7 @@
 #include <QPointer>
 
 class AndroidRuntimeAdapter;
+class AndroidSessionManager;
 
 class SessionManager;
 
@@ -24,6 +25,7 @@ public:
 
     void setSessionManager(SessionManager *sessionManager);
     void setAndroidRuntimeAdapter(AndroidRuntimeAdapter *adapter);
+    void setAndroidSessionManager(AndroidSessionManager *manager);
 
     Q_INVOKABLE void reload();
     Q_INVOKABLE bool launch(const QString &appId);
@@ -44,4 +46,5 @@ private:
     QHash<QString, LaunchEntry> m_launchEntries;
     SessionManager *m_sessionManager = nullptr;
     QPointer<AndroidRuntimeAdapter> m_androidAdapter;
+    QPointer<AndroidSessionManager> m_androidSessionManager;
 };
