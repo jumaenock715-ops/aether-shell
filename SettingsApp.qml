@@ -38,7 +38,7 @@ Item {
             Row {
                 spacing: 16
                 Text { text: "Dark mode"; color: Theme.text; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
-                Toggle { checked: Theme.dark; onToggled: (v) => Theme.dark = v }
+                Toggle { checked: Theme.dark; onToggled: (v) => SessionSettings.setDarkMode(v) }
             }
             Column {
                 spacing: 8
@@ -52,7 +52,8 @@ Item {
                             width: 32; height: 32; radius: 16; color: modelData
                             border.width: Theme.accent.toString().toLowerCase() === modelData.toLowerCase() ? 3 : 0
                             border.color: Theme.text
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Theme.accent = modelData }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: SessionSettings.setAccentColor(modelData) }
                         }
                     }
                 }
