@@ -215,6 +215,15 @@ bool WaydroidRuntimeAdapter::launchPackage(const QString &packageName,
     if (!ensureAvailable(error))
         return false;
 
+    // Do not issue overlapping session-start/session-stop commands. A launch
+    // can be retried once the in-flight runtime transition has completed.
+    if (m_runtimeState == QStringLiteral("starting") ||
+        m_runtimeState == QStringLiteral("stopping")) {
+        if (error)
+            *error = QStringLiteral("The Android session is changing state. Retry when it is ready.");
+        return false;
+    }
+
     // Starting an Android app from the launcher should not require the user
     // to open Settings first. Bring up the user session, then dispatch the app.
     if (m_runtimeState != QStringLiteral("running")) {
