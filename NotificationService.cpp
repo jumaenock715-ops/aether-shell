@@ -57,11 +57,12 @@ void NotificationService::push(const QString &title, const QString &body)
 {
     const int insertionRow = 0;
     beginInsertRows(QModelIndex(), insertionRow, insertionRow);
-    m_notifications.prepend({
-        {QStringLiteral("title"), title},
-        {QStringLiteral("body"), body},
-        {QStringLiteral("time"), QDateTime::currentDateTime().toString(QStringLiteral("hh:mm"))}
-    });
+    QVariantMap notification;
+    notification.insert(QStringLiteral("title"), title);
+    notification.insert(QStringLiteral("body"), body);
+    notification.insert(QStringLiteral("time"),
+                        QDateTime::currentDateTime().toString(QStringLiteral("hh:mm")));
+    m_notifications.prepend(notification);
     endInsertRows();
 
     emit countChanged();
