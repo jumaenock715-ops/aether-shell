@@ -4,6 +4,7 @@
 #include "ApplicationService.h"
 #include "NotificationService.h"
 #include "SessionManager.h"
+#include "AndroidSessionManager.h"
 #include "SessionSettings.h"
 #include "WaydroidRuntimeAdapter.h"
 #include "AppCatalog.h"
@@ -22,8 +23,10 @@ int main(int argc, char *argv[])
     SessionManager sessionManager;
     SessionSettings sessionSettings;
     WaydroidRuntimeAdapter androidRuntimeAdapter;
+    AndroidSessionManager androidSessionManager(&androidRuntimeAdapter);
     applicationService.setSessionManager(&sessionManager);
     applicationService.setAndroidRuntimeAdapter(&androidRuntimeAdapter);
+    applicationService.setAndroidSessionManager(&androidSessionManager);
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("aethericon", new IconProvider);
@@ -34,6 +37,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("SessionManager", &sessionManager);
     engine.rootContext()->setContextProperty("SessionSettings", &sessionSettings);
     engine.rootContext()->setContextProperty("AndroidRuntime", &androidRuntimeAdapter);
+    engine.rootContext()->setContextProperty("AndroidSessions", &androidSessionManager);
     // Non-empty only in CI: enables the automated click-through that saves screenshots.
     engine.rootContext()->setContextProperty("demoDir", QString::fromLocal8Bit(qgetenv("AETHER_DEMO_DIR")));
 
