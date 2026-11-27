@@ -50,7 +50,7 @@ The Android provider has a concrete Waydroid adapter. When the `waydroid` execut
 
 `WaylandWindowTracker` opens a separate Wayland client connection and discovers `ext-foreign-toplevel-list-v1` at runtime. It reports mapped-window creation, metadata updates, and closure without attempting to control other applications' windows. This protocol does not report activation, so active/foreground state is not inferred.
 
-The Waydroid adapter accepts explicit `app_id`-to-package mappings through `registerWindowAppIdMapping()`. A mapping is accepted only when the Android package identifier is valid and the package exists in the current installed-app catalogue. Unmapped windows are reported as unassociated; window titles are never used to guess package identity. The mapping registry is currently in-memory and awaits a trusted Waydroid/Android surface-metadata source. The wlr foreign-toplevel protocol fallback is not implemented yet.
+The Waydroid adapter accepts explicit live-window-ID-to-package mappings through `registerWindowPackageMapping()`. A mapping is accepted only for a currently observed window and an installed Android package. Unmapped windows are reported as unassociated; window titles and compositor app IDs are never used to guess package identity. The mapping registry is currently in-memory and awaits a trusted Waydroid/Android surface-metadata source. The wlr foreign-toplevel protocol fallback is not implemented yet.
 
 Window tracking is optional at build time. If `libwayland-dev` and `libwayland-bin` are available, CMake generates the protocol bindings and links `wayland-client`. Otherwise the shell still builds without this feature and the tracker reports `unsupported-build`.
 
