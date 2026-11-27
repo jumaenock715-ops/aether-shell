@@ -92,6 +92,7 @@ if(AETHER_HAVE_WAYLAND)
     target_sources(aether-shell PRIVATE
         ${FOREIGN_TOPLEVEL_HEADER}
         ${FOREIGN_TOPLEVEL_CODE})
+    target_include_directories(aether-shell PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(aether-shell PRIVATE PkgConfig::WAYLAND_CLIENT)
 endif()
 
