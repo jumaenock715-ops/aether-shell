@@ -73,10 +73,12 @@ AndroidSessionManager::AndroidSessionManager(AndroidRuntimeAdapter *adapter,
         if (!m_adapter || m_adapter->runtimeState() != QStringLiteral("stopped"))
             return;
         for (int i = 0; i < m_records.size(); ++i) {
-            if (m_records[i].state != QStringLiteral("launch-failed"))
+            if (m_records[i].state != QStringLiteral("launch-failed")) {
+                m_records[i].activityState = QStringLiteral("unknown");
                 updateRecord(i, QStringLiteral("runtime-stopped"),
                              QStringLiteral("The Android user session was stopped. "
                                             "Per-activity state is not available."));
+            }
         }
     });
 }
