@@ -3,7 +3,6 @@
 #include <QObject>
 #include <QString>
 #include <QVariantList>
-#include <QString>
 
 // Provider boundary for Android userspace runtimes (Waydroid is the first
 // candidate). Implementations own runtime-specific commands and package data.
