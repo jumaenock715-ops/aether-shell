@@ -3,6 +3,7 @@
 #include <QAbstractListModel>
 #include <QPointer>
 #include <QVariantList>
+#include <QVector>
 
 class AndroidRuntimeAdapter;
 
