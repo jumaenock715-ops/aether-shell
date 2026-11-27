@@ -49,7 +49,7 @@ The Application Compatibility Layer presents one catalogue and launch experience
 
 The Android provider must eventually cover runtime start/stop/status, APK discovery and installation, package removal and update, per-app launch, Android app metadata/icons, notifications, clipboard, file sharing, audio, input, display sizing, and permission handling. The Linux provider continues to use native Linux application mechanisms.
 
-`ApplicationService` now has the first unified catalogue/dispatch structure: Linux entries are exposed with `linux:` IDs, and an injected Android adapter can contribute package records with `android:` IDs. The Linux provider is active. The Android adapter interface exists, but no concrete runtime backend is connected, so APK discovery and launch are not yet operational.
+`ApplicationService` has a unified catalogue/dispatch structure: Linux entries are exposed with `linux:` IDs, and the injected Waydroid adapter can contribute package records with `android:` IDs. The Linux provider is active. The Waydroid adapter has source implementations for app listing, launch, APK install/remove, and user-session start/stop, but these operations have not been runtime-tested.
 
 ### 3. Android Runtime Service
 
@@ -74,7 +74,7 @@ User-session responsibilities that do not inherently require elevated privileges
 - **Session Settings:** persists user preferences such as theme, accent colour, shell layout, startup behaviour, and user-level application preferences;
 - **Session Manager:** coordinates shell session state and application/runtime lifecycle requests.
 
-Session Settings is a distinct planned service and remains in the implementation sequence. It must persist preferences across shell restarts, validate values, provide defaults and migration/version handling, and distinguish user preferences from live hardware state. Theme and accent settings are the first persistence scope. Display brightness, Wi-Fi, Bluetooth, and power state are not ordinary theme preferences and must ultimately be controlled by system providers.
+Session Settings is a distinct in-process service under active development. It persists dark/light mode, accent colour, and do-not-disturb across shell restarts, with schema versioning and defaults. Do-not-disturb is a user notification preference and suppresses toast presentation. Display brightness, Wi-Fi, Bluetooth, and power state are not ordinary user preferences and must ultimately be controlled by system providers.
 
 Session Manager must evolve beyond tracking one process per launched Linux app. It should coordinate provider-specific lifecycle handles: Linux process instances and Android package/activity instances managed by the Android runtime.
 
@@ -158,11 +158,11 @@ A UI control must not optimistically claim that an operation succeeded before th
 ## Relationship to current source
 
 - `System.qml` contains demonstration properties for Wi-Fi, Bluetooth, do-not-disturb, brightness, and battery. These are placeholders, not hardware integration.
-- `ApplicationService.cpp/.h` exposes a unified provider-aware catalogue and delegates Linux process launches to `SessionManager`. It can merge Android records and dispatch Android launch requests when an adapter is injected; no concrete Android adapter is currently instantiated.
+- `ApplicationService.cpp/.h` exposes a unified provider-aware catalogue and delegates Linux process launches to `SessionManager`. `WaydroidRuntimeAdapter.cpp/.h` is instantiated in `main.cpp`, contributes Android package records when the runtime is available, and dispatches Android launch requests through the Waydroid CLI.
 - `AppCatalog.cpp/.h` provides the themed-icon image provider.
 - `NotificationService.cpp/.h` provides an in-process notification model; external D-Bus notification integration remains future work.
 - `SessionManager.cpp/.h` tracks launched Linux processes; it is not yet a complete login/session supervisor or Android lifecycle manager.
-- `SessionSettings.cpp/.h` now persists dark/light mode and accent colour through QSettings. The existing Settings UI uses the service for appearance preferences. Other settings categories and migrations remain future work.
+- `SessionSettings.cpp/.h` persists dark/light mode, accent colour, and do-not-disturb through QSettings with schema version 2. The existing Settings and Quick Settings UI use the service. Other settings categories and migrations remain future work.
 - `main.cpp` constructs the shell and current in-process services. These are not yet separate system daemons.
 
 ## Implementation sequence
@@ -170,7 +170,7 @@ A UI control must not optimistically claim that an operation succeeded before th
 1. **Record the Android-first compatibility architecture and runtime adapter boundary.**
 2. **Extend Session Settings persistence** beyond the initial theme/accent implementation; add validated preference groups, migration tests, and user-level settings without redesigning the existing UI.
 3. **Complete and validate the unified application model** and provider dispatch. The first catalogue/dispatch structure is now committed.
-4. **Implement a concrete Android runtime adapter**, initially targeting Waydroid after confirming the command output and runtime API contract. Keep runtime-specific details out of QML.
+4. **Implement a concrete Android runtime adapter**, initially targeting Waydroid. The asynchronous CLI adapter is now present in source, with session controls exposed in Settings; runtime installation, image initialization, and real execution validation remain outstanding.
 5. **Extend Session Manager** to coordinate native process handles and Android runtime app handles.
 6. **Integrate notification, clipboard, file, audio, input, and graphics bridges** one capability at a time.
 7. **Integrate existing Linux system managers** for network, power, display, and devices.
@@ -187,7 +187,7 @@ A UI control must not optimistically claim that an operation succeeded before th
 - production installer and image generation;
 - Yocto image builds.
 
-Android runtime support is a primary development objective, but it is not implemented yet.
+Android runtime integration has initial source-level app/session operations, but it is not yet validated and does not provide the complete Android desktop experience.
 
 ## Development constraints
 
