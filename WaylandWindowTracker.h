@@ -67,5 +67,6 @@ private:
     QSocketNotifier *m_readNotifier = nullptr;
     QString m_status = QStringLiteral("not-started");
     quint64 m_nextWindowId = 1;
+    bool m_readPrepared = false;
     QHash<ext_foreign_toplevel_handle_v1 *, WindowState> m_windows;
 };
