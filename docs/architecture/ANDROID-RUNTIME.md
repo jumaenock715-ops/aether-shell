@@ -157,7 +157,7 @@ A LineageOS/AOSP-derived runtime does not automatically include licensed Google 
 2. Session Settings persistence — initial dark-mode and accent-colour persistence is implemented; extend the service and validate migrations.
 3. Unified application record and dispatcher — first catalogue and provider-dispatch structure is implemented without changing the launcher visuals.
 4. Runtime adapter skeleton — the Android provider interface is committed and remains independent of whether Waydroid is installed.
-5. Waydroid CLI backend — initial asynchronous app-list, launch, APK install/remove, and user-session start/stop adapter is implemented. Runtime installation, image initialization, kernel configuration, and validation remain outstanding.
+5. Waydroid CLI backend — asynchronous app-list, launch, APK install/remove, and user-session start/stop operations are implemented. Launcher requests start the user session automatically when needed; Settings also exposes manual session controls and refresh. Runtime installation, image initialization, kernel configuration, and validation remain outstanding.
 6. Notification, clipboard, file, audio, input, and window bridges.
 7. Debian packaging and kernel configuration.
 8. Runtime testing on real target hardware.
@@ -182,4 +182,4 @@ Existing code:
 - in-process notification model;
 - preliminary Linux process tracking.
 
-The Waydroid adapter invokes the documented `waydroid app list/install/remove/launch` and `waydroid session start/stop` commands as separate QProcess arguments; it never constructs a shell command. Its application-list parser follows the current Waydroid CLI source format (`Name`, `packageName`, `categories`). The adapter's `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. Listing depends on a running Waydroid session. No runtime build, boot, or hardware test has been performed.
+The Waydroid adapter invokes the documented `waydroid app list/install/remove/launch` and `waydroid session start/stop` commands as separate QProcess arguments; it never constructs a shell command. Its application-list parser follows the current Waydroid CLI source format (`Name`, `packageName`, `categories`). The adapter's `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. The Settings page exposes this state and lets the user request session start/stop and app-list refresh. Listing depends on a running Waydroid session. No runtime build, boot, or hardware test has been performed.
