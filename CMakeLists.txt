@@ -11,13 +11,15 @@ qt_add_executable(aether-shell
     main.cpp
     ApplicationService.cpp
     ApplicationService.h
+    NotificationService.cpp
+    NotificationService.h
     AppCatalog.cpp
     AppCatalog.h
 )
 
 # Singletons must be flagged before the QML module is created.
 set_source_files_properties(
-    Theme.qml Apps.qml System.qml Notifications.qml
+    Theme.qml Apps.qml System.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(aether-shell
@@ -28,7 +30,6 @@ qt_add_qml_module(aether-shell
         Theme.qml
         Apps.qml
         System.qml
-        Notifications.qml
         AppIcon.qml
         Toggle.qml
         AetherSlider.qml
