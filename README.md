@@ -12,6 +12,12 @@ Controls are interface demonstrations; they are not yet connected to hardware se
 - Floating, draggable app windows (close, maximise, double-click title bar, focus/raise)
 - Settings app: dark/light theme, accent colour, display, network, about
 
+## Session manager
+
+The C++ `SessionManager` launches and tracks application processes requested by `ApplicationService`. It exposes a live list of process instances (desktop ID, application name, process ID, and starting/running state), reports start, exit, and launch-failure signals, and provides terminate-by-application and terminate-all requests. The existing launcher still calls `AppCatalog.launch()`; it does not need to know about process management.
+
+This is a first session-level process tracker, not yet a complete desktop-session supervisor. It does not yet restore sessions, monitor child process trees, enforce resource limits, or coordinate logout and system shutdown.
+
 ## Notification service
 
 The C++ `NotificationService` owns the session notification list and exposes it to QML through the existing `Notifications` context property. It preserves the current `items`, `count`, `push(title, body)`, `clear()`, and `pushed` interfaces, so the notification centre and badge do not need a visual rewrite.
@@ -45,6 +51,7 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 - `Main.qml` shell root and window management
 - `Theme.qml`, `Apps.qml`, `System.qml` QML singletons (shared state)
 - `NotificationService.cpp/.h`: session notification model exposed to QML
+- `SessionManager.cpp/.h`: application process lifecycle tracking
 - `ApplicationService.cpp/.h`: session-level installed-application discovery and launch service
 - `AppCatalog.cpp/.h`: themed icon image provider
 - `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
