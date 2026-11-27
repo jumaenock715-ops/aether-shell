@@ -59,6 +59,7 @@ private:
         QString windowState = QStringLiteral("unknown");
         QSet<QString> windows;
         QSet<QString> activeWindows;
+        bool activationKnown = false;
     };
 
     int indexOf(const QString &packageName) const;
