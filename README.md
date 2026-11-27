@@ -6,7 +6,7 @@ Controls are interface demonstrations; they are not yet connected to hardware se
 ## What works
 - Top bar with clock, status area, notification badge
 - Dock with running-app indicators and hover animation
-- Fullscreen launcher with live search; lists built-in apps plus installed apps read from XDG .desktop files, with theme icons (Enter launches the first match, Esc closes)
+- Fullscreen launcher with live search; lists built-in apps plus installed Linux apps from XDG .desktop files, with theme icons (Enter launches the first match, Esc closes)
 - Quick settings: Wi-Fi, Bluetooth, dark mode, do not disturb, brightness (dims the shell)
 - Notification centre with toast popups and "Send test notification"
 - Floating, draggable app windows (close, maximise, double-click title bar, focus/raise)
@@ -32,9 +32,9 @@ This is currently an in-process notification model. It does not yet receive noti
 
 ## Application service
 
-The C++ `ApplicationService` discovers application desktop entries from XDG application directories and exposes metadata through the existing `AppCatalog` context property. The QML launcher retains its current interface.
+The C++ `ApplicationService` exposes one application catalogue through the existing `AppCatalog` context property. Linux desktop entries and Android packages use stable provider-prefixed IDs (`linux:` and `android:`). The launcher routes both provider types through the same `AppCatalog.launch(appId)` call and retains its current visual interface. `AndroidRuntimeAdapter.h` defines the provider boundary for runtime discovery, app listing, launch, APK installation, and package removal.
 
-The service currently:
+The Linux provider currently:
 - searches application directories recursively;
 - derives desktop IDs from relative paths;
 - honours higher-priority desktop-entry masking and basic visibility rules;
@@ -43,6 +43,8 @@ The service currently:
 - launches with `QProcess` directly, without invoking a shell.
 
 Terminal-based desktop entries and file/URL launch contexts are not yet supported. Full desktop-entry localization and specification conformance remain future work.
+
+The Android adapter is currently an interface only. No Waydroid backend is connected or instantiated, so Android packages are not yet discovered or launchable. APK installation/removal methods are part of the provider contract but have no runtime implementation yet.
 
 ## Build (Ubuntu / Debian)
     sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev \
@@ -59,7 +61,8 @@ Needs Qt 6.5 or newer (for loadFromModule). On Wayland: `QT_QPA_PLATFORM=wayland
 - `SessionSettings.cpp/.h`: persistent user appearance preferences
 - `NotificationService.cpp/.h`: session notification model exposed to QML
 - `SessionManager.cpp/.h`: application process lifecycle tracking
-- `ApplicationService.cpp/.h`: session-level installed-application discovery and launch service
+- `ApplicationService.cpp/.h`: unified catalogue and provider-based launch dispatcher (Linux provider active; Android adapter hook defined)
+- `AndroidRuntimeAdapter.h`: Android runtime provider interface
 - `AppCatalog.cpp/.h`: themed icon image provider
 - `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
 - `AppWindow`, `SettingsApp`, `PlaceholderApp`: window frame and app content
