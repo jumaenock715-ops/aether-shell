@@ -39,6 +39,35 @@ AndroidSessionManager::AndroidSessionManager(AndroidRuntimeAdapter *adapter,
         emit launchFailed(target, reason);
     });
 
+    connect(m_adapter, &AndroidRuntimeAdapter::applicationLifecycleChanged,
+            this, [this](const QString &packageName, const QString &lifecycleState) {
+        const int row = indexOf(packageName);
+        if (row < 0)
+            return;
+
+        QString sessionState;
+        QString detail;
+        if (lifecycleState == QStringLiteral("started") ||
+            lifecycleState == QStringLiteral("foreground")) {
+            sessionState = QStringLiteral("activity-running");
+            detail = QStringLiteral("The Android provider reported an active activity.");
+        } else if (lifecycleState == QStringLiteral("background")) {
+            sessionState = QStringLiteral("activity-background");
+            detail = QStringLiteral("The Android provider reported a background activity.");
+        } else if (lifecycleState == QStringLiteral("stopped")) {
+            sessionState = QStringLiteral("activity-stopped");
+            detail = QStringLiteral("The Android provider reported that the activity stopped.");
+        } else if (lifecycleState == QStringLiteral("crashed")) {
+            sessionState = QStringLiteral("activity-crashed");
+            detail = QStringLiteral("The Android provider reported an activity failure.");
+        } else {
+            return;
+        }
+
+        m_records[row].activityState = lifecycleState;
+        updateRecord(row, sessionState, detail);
+    });
+
     connect(m_adapter, &AndroidRuntimeAdapter::runtimeStateChanged,
             this, [this]() {
         if (!m_adapter || m_adapter->runtimeState() != QStringLiteral("stopped"))
