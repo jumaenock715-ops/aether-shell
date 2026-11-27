@@ -11,6 +11,7 @@ qt_add_executable(aether-shell
     main.cpp
     ApplicationService.cpp
     ApplicationService.h
+    AndroidRuntimeAdapter.h
     NotificationService.cpp
     NotificationService.h
     SessionManager.cpp
