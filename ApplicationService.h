@@ -5,6 +5,8 @@
 #include <QStringList>
 #include <QVariantList>
 
+class SessionManager;
+
 // Session-level application service.
 // Discovers XDG desktop entries and launches applications without a shell.
 class ApplicationService : public QObject
@@ -16,6 +18,8 @@ public:
     explicit ApplicationService(QObject *parent = nullptr);
 
     QVariantList apps() const { return m_apps; }
+
+    void setSessionManager(SessionManager *sessionManager);
 
     Q_INVOKABLE void reload();
     Q_INVOKABLE bool launch(const QString &desktopId);
@@ -34,4 +38,5 @@ private:
 
     QVariantList m_apps;
     QHash<QString, LaunchEntry> m_launchEntries;
+    SessionManager *m_sessionManager = nullptr;
 };
