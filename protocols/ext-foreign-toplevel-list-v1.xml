@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="ext_foreign_toplevel_list_v1">
+  <copyright>
+    Copyright © 2018 Ilia Bozhinov
+    Copyright © 2020 Isaac Freund
+    Copyright © 2022 wb9688
+    Copyright © 2023 i509VCB
+
+    Permission to use, copy, modify, distribute, and sell this software and its
+    documentation for any purpose is hereby granted without fee, provided that
+    the above copyright notice appear in all copies and that both that copyright
+    notice and this permission notice appear in supporting documentation, and
+    that the name of the copyright holders not be used in advertising or
+    publicity pertaining to distribution of the software without specific,
+    written prior permission. The copyright holders make no representations
+    about the suitability of this software for any purpose. It is provided "as
+    is" without express or implied warranty.
+
+    THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+    INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO
+    EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+    CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+    DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+    TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+    OF THIS SOFTWARE.
+  </copyright>
+  <description summary="list toplevels">
+    Read-only list of mapped toplevel windows. Compositor policy may restrict
+    access to this protocol. This protocol is in the staging/testing phase.
+  </description>
+  <interface name="ext_foreign_toplevel_list_v1" version="1">
+    <description summary="list toplevels">
+      Each mapped toplevel is announced with a handle. Initial properties follow
+      the toplevel event and are committed by the handle done event.
+    </description>
+    <event name="toplevel">
+      <description summary="a toplevel has been created"/>
+      <arg name="toplevel" type="new_id" interface="ext_foreign_toplevel_handle_v1"/>
+    </event>
+    <event name="finished">
+      <description summary="the compositor has finished with the manager"/>
+    </event>
+    <request name="stop">
+      <description summary="stop sending events"/>
+    </request>
+    <request name="destroy" type="destructor">
+      <description summary="destroy the manager"/>
+    </request>
+  </interface>
+  <interface name="ext_foreign_toplevel_handle_v1" version="1">
+    <description summary="a mapped toplevel">
+      A single application may have multiple mapped toplevel windows.
+    </description>
+    <request name="destroy" type="destructor">
+      <description summary="destroy the handle"/>
+    </request>
+    <event name="closed">
+      <description summary="the toplevel has been closed"/>
+    </event>
+    <event name="done">
+      <description summary="all information about the toplevel has been sent"/>
+    </event>
+    <event name="title">
+      <description summary="title change"/>
+      <arg name="title" type="string"/>
+    </event>
+    <event name="app_id">
+      <description summary="application identifier change"/>
+      <arg name="app_id" type="string"/>
+    </event>
+    <event name="identifier">
+      <description summary="stable identifier for a toplevel"/>
+      <arg name="identifier" type="string"/>
+    </event>
+  </interface>
+</protocol>
