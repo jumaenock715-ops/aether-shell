@@ -21,7 +21,7 @@ AndroidSessionManager::AndroidSessionManager(AndroidRuntimeAdapter *adapter,
             return;
         updateRecord(row, QStringLiteral("launch-command-completed"),
                      QStringLiteral("Waydroid completed the launch command. "
-                                    "The Android activity state is not exposed."));
+                                    "This does not confirm Android activity state."));
         emit launchCommandCompleted(target);
     });
 
@@ -68,6 +68,40 @@ AndroidSessionManager::AndroidSessionManager(AndroidRuntimeAdapter *adapter,
         updateRecord(row, sessionState, detail);
     });
 
+    // These events describe compositor-visible windows, not Android process
+    // lifetime. One package may own multiple windows at the same time.
+    connect(m_adapter, &AndroidRuntimeAdapter::applicationWindowChanged,
+            this, [this](const QString &packageName, const QString &windowId,
+                         const QString &, const QString &eventState) {
+        const int row = indexOf(packageName);
+        if (row < 0 || windowId.isEmpty())
+            return;
+
+        SessionRecord &record = m_records[row];
+        if (eventState == QStringLiteral("opened")) {
+            record.windows.insert(windowId);
+            record.activeWindows.remove(windowId);
+        } else if (eventState == QStringLiteral("activated")) {
+            record.windows.insert(windowId);
+            record.activeWindows.insert(windowId);
+        } else if (eventState == QStringLiteral("deactivated")) {
+            if (record.windows.contains(windowId))
+                record.activeWindows.remove(windowId);
+        } else if (eventState == QStringLiteral("closed")) {
+            record.windows.remove(windowId);
+            record.activeWindows.remove(windowId);
+        } else {
+            return;
+        }
+
+        QString windowState = QStringLiteral("closed");
+        if (!record.windows.isEmpty()) {
+            windowState = record.activeWindows.isEmpty()
+                ? QStringLiteral("background") : QStringLiteral("foreground");
+        }
+        updateWindowRecord(row, windowState);
+    });
+
     connect(m_adapter, &AndroidRuntimeAdapter::runtimeStateChanged,
             this, [this]() {
         if (!m_adapter || m_adapter->runtimeState() != QStringLiteral("stopped"))
@@ -75,9 +109,12 @@ AndroidSessionManager::AndroidSessionManager(AndroidRuntimeAdapter *adapter,
         for (int i = 0; i < m_records.size(); ++i) {
             if (m_records[i].state != QStringLiteral("launch-failed")) {
                 m_records[i].activityState = QStringLiteral("unknown");
+                m_records[i].windows.clear();
+                m_records[i].activeWindows.clear();
                 updateRecord(i, QStringLiteral("runtime-stopped"),
                              QStringLiteral("The Android user session was stopped. "
                                             "Per-activity state is not available."));
+                updateWindowRecord(i, QStringLiteral("closed"));
             }
         }
     });
@@ -106,6 +143,9 @@ QVariant AndroidSessionManager::data(const QModelIndex &index, int role) const
     case ActivityStateRole: return record.activityState;
     case LastRequestedRole: return record.lastRequested;
     case DetailRole: return record.detail;
+    case WindowStateRole: return record.windowState;
+    case WindowCountRole: return record.windows.size();
+    case ActiveWindowCountRole: return record.activeWindows.size();
     default: return {};
     }
 }
@@ -118,7 +158,10 @@ QHash<int, QByteArray> AndroidSessionManager::roleNames() const
         {StateRole, QByteArrayLiteral("state")},
         {ActivityStateRole, QByteArrayLiteral("activityState")},
         {LastRequestedRole, QByteArrayLiteral("lastRequested")},
-        {DetailRole, QByteArrayLiteral("detail")}
+        {DetailRole, QByteArrayLiteral("detail")},
+        {WindowStateRole, QByteArrayLiteral("windowState")},
+        {WindowCountRole, QByteArrayLiteral("windowCount")},
+        {ActiveWindowCountRole, QByteArrayLiteral("activeWindowCount")}
     };
 }
 
@@ -142,6 +185,15 @@ void AndroidSessionManager::updateRecord(int row, const QString &state,
                      {StateRole, ActivityStateRole, DetailRole});
 }
 
+void AndroidSessionManager::updateWindowRecord(int row, const QString &windowState)
+{
+    if (row < 0 || row >= m_records.size())
+        return;
+    m_records[row].windowState = windowState;
+    emit dataChanged(index(row, 0), index(row, 0),
+                     {WindowStateRole, WindowCountRole, ActiveWindowCountRole});
+}
+
 bool AndroidSessionManager::launch(const QString &packageName, const QString &name)
 {
     const QString package = packageName.trimmed();
@@ -157,10 +209,13 @@ bool AndroidSessionManager::launch(const QString &packageName, const QString &na
     if (row < 0) {
         row = m_records.size();
         beginInsertRows(QModelIndex(), row, row);
-        m_records.append({package, displayName, QStringLiteral("launch-requested"),
-                          QStringLiteral("unknown"),
-                          QDateTime::currentDateTime().toString(Qt::ISODate),
-                          QStringLiteral("Launch request queued; activity state is not yet known.")});
+        SessionRecord record;
+        record.packageName = package;
+        record.name = displayName;
+        record.state = QStringLiteral("launch-requested");
+        record.lastRequested = QDateTime::currentDateTime().toString(Qt::ISODate);
+        record.detail = QStringLiteral("Launch request queued; activity state is not yet known.");
+        m_records.append(record);
         endInsertRows();
         emit countChanged();
     } else {
