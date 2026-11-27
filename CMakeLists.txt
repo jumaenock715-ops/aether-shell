@@ -13,6 +13,8 @@ qt_add_executable(aether-shell
     ApplicationService.h
     NotificationService.cpp
     NotificationService.h
+    SessionManager.cpp
+    SessionManager.h
     AppCatalog.cpp
     AppCatalog.h
 )
