@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("Notifications", &notificationService);
     engine.rootContext()->setContextProperty("SessionManager", &sessionManager);
     engine.rootContext()->setContextProperty("SessionSettings", &sessionSettings);
+    engine.rootContext()->setContextProperty("AndroidRuntime", &androidRuntimeAdapter);
     // Non-empty only in CI: enables the automated click-through that saves screenshots.
     engine.rootContext()->setContextProperty("demoDir", QString::fromLocal8Bit(qgetenv("AETHER_DEMO_DIR")));
 
