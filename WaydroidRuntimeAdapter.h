@@ -2,11 +2,13 @@
 
 #include "AndroidRuntimeAdapter.h"
 
+#include <QByteArray>
 #include <QSet>
-#include <QStringList>
-#include <functional>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
+
+#include <functional>
 
 class QProcess;
 
