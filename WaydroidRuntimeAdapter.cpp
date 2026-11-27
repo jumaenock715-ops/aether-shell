@@ -172,6 +172,15 @@ bool WaydroidRuntimeAdapter::startRuntime(QString *error)
     if (!ensureAvailable(error))
         return false;
 
+    if (m_runtimeState == QStringLiteral("running") ||
+        m_runtimeState == QStringLiteral("starting"))
+        return true;
+    if (m_runtimeState == QStringLiteral("stopping")) {
+        if (error)
+            *error = QStringLiteral("The Android session is stopping.");
+        return false;
+    }
+
     setRuntimeState(QStringLiteral("starting"));
     const bool accepted = runCommand(
         QStringLiteral("session-start"),
@@ -190,6 +199,15 @@ bool WaydroidRuntimeAdapter::stopRuntime(QString *error)
 {
     if (!ensureAvailable(error))
         return false;
+
+    if (m_runtimeState == QStringLiteral("stopped") ||
+        m_runtimeState == QStringLiteral("stopping"))
+        return true;
+    if (m_runtimeState == QStringLiteral("starting")) {
+        if (error)
+            *error = QStringLiteral("The Android session is starting.");
+        return false;
+    }
 
     setRuntimeState(QStringLiteral("stopping"));
     const bool accepted = runCommand(
