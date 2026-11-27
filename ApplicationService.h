@@ -26,7 +26,7 @@ public:
     void setAndroidRuntimeAdapter(AndroidRuntimeAdapter *adapter);
 
     Q_INVOKABLE void reload();
-    Q_INVOKABLE bool launch(const QString &desktopId);
+    Q_INVOKABLE bool launch(const QString &appId);
 
 signals:
     void appsChanged();
