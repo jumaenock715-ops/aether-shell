@@ -73,10 +73,10 @@ Operations that can fail must return a result and useful error information. A UI
 ## Relationship to current source
 
 - `System.qml` currently contains demonstration properties for Wi-Fi, Bluetooth, do-not-disturb, brightness, and battery. These are placeholders, not hardware integration.
-- `AppCatalog.cpp` currently discovers XDG desktop entries and launches their commands. This is the beginning of the application-catalog responsibility; it will need hardening and richer metadata before being treated as a system-wide application service.
+- `ApplicationService.cpp/.h` discovers XDG desktop entries and delegates launch requests to `SessionManager`; `AppCatalog.cpp/.h` now provides the themed-icon image provider. Desktop-entry handling still needs further specification work.
 - `NotificationService.cpp/.h` now provides the in-process notification model; a later adapter can connect it to the desktop notification service.
 - `SessionManager.cpp/.h` now tracks launched application processes; it is not yet a full login/session supervisor.
-- `main.cpp` currently constructs the shell and its application catalog. Service adapters can be introduced incrementally without replacing the QML interface.
+- `main.cpp` constructs the shell, application service, notification service, and session manager. These are currently in-process components, not separate system daemons.
 
 ## Implementation sequence
 
