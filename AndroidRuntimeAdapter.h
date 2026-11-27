@@ -23,8 +23,6 @@ public:
     virtual QString runtimeState() const = 0;
     virtual bool startRuntime(QString *error = nullptr) = 0;
     virtual bool stopRuntime(QString *error = nullptr) = 0;
-
-    // Returns whether the request was accepted; errors explain rejection.
     virtual bool launchPackage(const QString &packageName,
                                QString *error = nullptr) = 0;
     virtual bool installApk(const QString &apkPath,
@@ -40,9 +38,16 @@ signals:
                                   const QString &reason);
     void operationFinished(const QString &operation, const QString &target);
 
-    // Optional provider event contract. A runtime/window bridge may emit
-    // started, foreground, background, stopped, or crashed. A provider that
-    // cannot observe real activity state must not emit guessed transitions.
+    // Optional runtime-level events. Providers must not infer these from the
+    // lifetime of a CLI command.
     void applicationLifecycleChanged(const QString &packageName,
                                      const QString &lifecycleState);
+
+    // Optional compositor/window events. windowId is opaque and unique while
+    // mapped; eventState is opened, activated, deactivated, or closed.
+    // packageName must be resolved by the provider, not guessed by the shell.
+    void applicationWindowChanged(const QString &packageName,
+                                  const QString &windowId,
+                                  const QString &title,
+                                  const QString &eventState);
 };
