@@ -3,6 +3,8 @@
 #include "AndroidRuntimeAdapter.h"
 
 #include <QSet>
+#include <QStringList>
+#include <functional>
 #include <QString>
 #include <QVariantList>
 
