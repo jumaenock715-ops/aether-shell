@@ -154,7 +154,7 @@ A LineageOS/AOSP-derived runtime does not automatically include licensed Google 
 ## 10. Development milestones
 
 1. Architecture and provider interface — documented.
-2. Session Settings persistence — implement separately; required for the shell regardless of Android runtime choice.
+2. Session Settings persistence — initial dark-mode and accent-colour persistence is implemented; extend the service and validate migrations.
 3. Unified application record and dispatcher — design and implement without changing the current launcher visuals.
 4. Runtime adapter skeleton — compile-time interface and state model, with no assumption that Waydroid is installed.
 5. Waydroid backend — implement only after source/API and host requirements are confirmed.
