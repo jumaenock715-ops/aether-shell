@@ -208,6 +208,23 @@ bool WaydroidRuntimeAdapter::launchPackage(const QString &packageName,
     if (!ensureAvailable(error))
         return false;
 
+    // Starting an Android app from the launcher should not require the user
+    // to open Settings first. Bring up the user session, then dispatch the app.
+    if (m_runtimeState != QStringLiteral("running")) {
+        setRuntimeState(QStringLiteral("starting"));
+        return runCommand(
+            QStringLiteral("session-start"),
+            {QStringLiteral("session"), QStringLiteral("start")},
+            packageName,
+            [this, packageName](const QByteArray &) {
+                setRuntimeState(QStringLiteral("running"));
+                refreshApplications();
+                runCommand(QStringLiteral("launch"),
+                           {QStringLiteral("app"), QStringLiteral("launch"), packageName},
+                           packageName);
+            });
+    }
+
     return runCommand(QStringLiteral("launch"),
                       {QStringLiteral("app"), QStringLiteral("launch"), packageName},
                       packageName);
