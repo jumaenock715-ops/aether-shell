@@ -70,7 +70,7 @@ Request states:
 - `launch-failed` — the adapter reported a target-correlated failure;
 - `runtime-stopped` — the adapter reported completion of a user-session stop request.
 
-The model also aggregates compositor-visible windows per package. It accepts provider events `opened`, `activated`, `deactivated`, and `closed`, tracks multiple opaque window IDs per package, and exposes `windowCount`, `activeWindowCount`, and `windowState` (`foreground`, `background`, `closed`, or `unknown`). This is deliberately distinct from Android process/activity lifetime: a visible window is evidence of a mapped desktop surface, not proof of every Android service or background process state.
+The model also aggregates compositor-visible windows per package. It accepts provider events `opened`, `activated`, `deactivated`, and `closed`, tracks multiple opaque window IDs per package, and exposes `windowCount`, `activeWindowCount`, and `windowState` (`foreground`, `background`, `mapped`, `closed`, or `unknown`). This is deliberately distinct from Android process/activity lifetime: a visible window is evidence of a mapped desktop surface, not proof of every Android service or background process state.
 
 The adapter contract has two optional event channels:
 - `applicationLifecycleChanged(packageName, state)` for authoritative runtime activity events (`started`, `foreground`, `background`, `stopped`, `crashed`);
