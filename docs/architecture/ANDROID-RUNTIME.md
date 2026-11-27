@@ -1,6 +1,6 @@
 # Aether OS Android Runtime Integration
 
-**Status:** Initial Waydroid CLI adapter and Android launch/window-state model implemented in source; no runtime has been installed or tested.  
+**Status:** Wayland foreign-toplevel tracker and explicit Android window-identity resolver implemented in source; no build or runtime validation has been performed.  
 **Initial candidate:** Waydroid, subject to technical validation.  
 **Initial host direction:** Debian + Wayland + existing Aether Shell.
 
@@ -76,17 +76,17 @@ The adapter contract has two optional event channels:
 - `applicationLifecycleChanged(packageName, state)` for authoritative runtime activity events (`started`, `foreground`, `background`, `stopped`, `crashed`);
 - `applicationWindowChanged(packageName, windowId, title, state)` for compositor window events.
 
-A provider must resolve the Android package identity for each window; the shell must not guess from a window title. A provider that cannot observe these events must not emit them. The current Waydroid CLI adapter does not yet implement either event source, so activity state remains `unknown` and window state remains `unknown` until a real runtime/compositor bridge is connected.
+A provider must resolve the Android package identity for each window; the shell must not guess from a window title. The Wayland tracker now supplies raw compositor window events to the Waydroid adapter. The adapter has an explicit app-ID-to-package mapping registry and validates that each mapped package exists in the installed-app catalogue before associating a window. Unmapped windows are surfaced separately as unassociated; they are never attached by title matching. The mapping registry currently has no automatic trusted metadata feed from Waydroid and is not persisted, so actual Android package association remains pending that runtime-specific bridge. Activity state remains `unknown` because the Waydroid CLI adapter does not provide authoritative Android activity events.
 
 ### Wayland window observation strategy
 
-Aether Shell is a Wayland client, not a compositor. The tracker will use a dedicated Wayland client connection and runtime protocol discovery. Prefer `ext-foreign-toplevel-list-v1` for read-only enumeration and lifecycle events; support `zwlr-foreign-toplevel-management-unstable-v1` as a compatibility backend where needed. The tracker must check which global is actually advertised at runtime and report `unsupported` when neither is available. It must not assume a protocol from the compositor's name or version.
+Aether Shell is a Wayland client, not a compositor. `WaylandWindowTracker` now uses a dedicated Wayland client connection, runtime registry discovery, and Qt socket-notifier integration. It binds `ext-foreign-toplevel-list-v1` when advertised and reports `unsupported` when that global is unavailable or not exposed to the client. The current source does not yet implement the wlr foreign-toplevel fallback.
 
-The standard `ext-foreign-toplevel-list-v1` protocol is intentionally minimal and compositor policy may restrict which clients can bind it. It provides mapped toplevel handles and metadata such as title, app ID, and a temporary unique identifier; it does not itself provide the complete state/control surface of the older wlr protocol. The wlr protocol includes state such as activation and requests to manipulate toplevels. Aether's first implementation should be observation-only; do not expose close/maximize/activate requests until permission, UX, and protocol-specific behavior are separately designed.
+The standard `ext-foreign-toplevel-list-v1` protocol is intentionally minimal and compositor policy may restrict which clients can bind it. The tracker consumes mapped-window creation, metadata updates, and close events. It uses the protocol identifier when supplied and otherwise assigns a connection-local opaque identifier. This protocol does not report activation state, so the current tracker does not fabricate foreground/active events. It performs no window manipulation.
 
 Current compatibility references list Weston 15 without either protocol, while Sway and labwc list support for `ext-foreign-toplevel-list-v1`. Consequently Weston is not an acceptable reference compositor for this feature. Labwc and Sway are candidates for the first protocol integration test, but Waydroid surface presentation and app identity still require validation. This does not commit Aether's final desktop session to either compositor.
 
-A compositor's `app_id` is not guaranteed to equal an Android package name. The runtime bridge must provide an explicit, validated mapping from the Wayland surface identity to the Android package. Window title matching is not an acceptable identity mechanism. If the mapping cannot be established, the tracker may show an unassociated window but must not attach it to a guessed Android application.
+A compositor's `app_id` is not guaranteed to equal an Android package name. `WaydroidRuntimeAdapter::registerWindowAppIdMapping(appId, packageName)` is the explicit mapping entry point; it rejects invalid package identifiers and packages absent from the installed-app catalogue. Mappings are currently in-memory only. The adapter re-associates already observed windows when a mapping is registered or cleared, and emits `unassociatedWindowChanged` when identity cannot be established. No title matching or implicit app-ID/package-name equality is used. The remaining integration task is to obtain a trustworthy mapping from Waydroid/Android surface metadata and feed this API.
 
 These protocols report desktop toplevel windows, not Android's complete internal activity/process lifecycle. A mapped window can support truthful window-state reporting, but cannot prove that all activities or background services for that package are alive.
 
@@ -176,7 +176,7 @@ A LineageOS/AOSP-derived runtime does not automatically include licensed Google 
 3. Unified application record and dispatcher — first catalogue and provider-dispatch structure is implemented without changing the launcher visuals.
 4. Runtime adapter skeleton — the Android provider interface is committed and remains independent of whether Waydroid is installed.
 5. Waydroid CLI backend — asynchronous app-list, launch, APK install/remove, and user-session start/stop operations are implemented. Launcher requests start the user session automatically when needed; Settings also exposes manual session controls and refresh. Runtime installation, image initialization, kernel configuration, and validation remain outstanding.
-6. Android request ledger and window aggregation — source implementation present; protocol backend and runtime-to-package identity mapping still outstanding. Weston is excluded as the reference compositor for this feature; labwc/Sway are candidates.
+6. Android request ledger, Wayland foreign-toplevel tracker, and explicit package identity resolver — source implementation present. The ext protocol backend and mapping registry are connected; automatic Waydroid metadata-to-package mapping and the wlr protocol fallback remain outstanding. Weston is excluded as the reference compositor for this feature; labwc/Sway are candidates.
 7. Notification, clipboard, file, audio, and input bridges.
 8. Debian packaging and kernel configuration.
 9. Runtime testing on real target hardware.
@@ -202,4 +202,4 @@ Not implemented or not validated:
 - per-Android-app termination;
 - ARM native-library translation.
 
-The Waydroid adapter invokes CLI operations as separate QProcess arguments, never as a constructed shell command. Its `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. No runtime build, boot, or hardware test has been performed.
+The Waydroid adapter invokes CLI operations as separate QProcess arguments, never as a constructed shell command. Its `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. The Wayland tracker is optional at build time and requires `wayland-client` plus `wayland-scanner`; without them it reports `unsupported-build`. No source build, runtime, boot, or hardware test has been performed.
