@@ -1,4 +1,5 @@
 #include "WaydroidRuntimeAdapter.h"
+#include "WaylandWindowTracker.h"
 
 #include <QFileInfo>
 #include <QProcess>
@@ -298,4 +299,122 @@ bool WaydroidRuntimeAdapter::removePackage(const QString &packageName,
                       {QStringLiteral("app"), QStringLiteral("remove"), packageName},
                       packageName,
                       [this](const QByteArray &) { refreshApplications(); });
+}
+
+
+bool WaydroidRuntimeAdapter::isInstalledPackage(const QString &packageName) const
+{
+    for (const QVariant &entry : m_applications) {
+        if (entry.toMap().value(QStringLiteral("packageName")).toString() == packageName)
+            return true;
+    }
+    return false;
+}
+
+QString WaydroidRuntimeAdapter::mappedPackageForAppId(const QString &appId) const
+{
+    const QString packageName = m_windowAppIdToPackage.value(appId);
+    return !packageName.isEmpty() && isInstalledPackage(packageName)
+        ? packageName : QString();
+}
+
+bool WaydroidRuntimeAdapter::registerWindowAppIdMapping(
+    const QString &appId, const QString &packageName, QString *error)
+{
+    const QString normalizedAppId = appId.trimmed();
+    const QString normalizedPackage = packageName.trimmed();
+    if (normalizedAppId.isEmpty() || normalizedAppId.size() > 256 ||
+        !validPackageName(normalizedPackage)) {
+        if (error)
+            *error = QStringLiteral("A non-empty app ID and valid Android package are required.");
+        return false;
+    }
+    if (!isInstalledPackage(normalizedPackage)) {
+        if (error)
+            *error = QStringLiteral("The mapped Android package is not in the installed-app catalogue.");
+        return false;
+    }
+
+    m_windowAppIdToPackage.insert(normalizedAppId, normalizedPackage);
+    for (auto it = m_observedWindows.cbegin(); it != m_observedWindows.cend(); ++it) {
+        if (it->appId == normalizedAppId)
+            associateObservedWindow(it.key(), it.value());
+    }
+    return true;
+}
+
+void WaydroidRuntimeAdapter::clearWindowAppIdMapping(const QString &appId)
+{
+    const QString normalizedAppId = appId.trimmed();
+    m_windowAppIdToPackage.remove(normalizedAppId);
+    for (auto it = m_observedWindows.cbegin(); it != m_observedWindows.cend(); ++it) {
+        if (it->appId == normalizedAppId)
+            associateObservedWindow(it.key(), it.value());
+    }
+}
+
+void WaydroidRuntimeAdapter::setWindowTracker(WaylandWindowTracker *tracker)
+{
+    if (m_windowTracker == tracker)
+        return;
+    if (m_windowTracker)
+        disconnect(m_windowTracker, nullptr, this, nullptr);
+    m_windowTracker = tracker;
+    if (!m_windowTracker)
+        return;
+
+    connect(m_windowTracker, &WaylandWindowTracker::windowChanged,
+            this, &WaydroidRuntimeAdapter::handleWindowChanged);
+}
+
+void WaydroidRuntimeAdapter::handleWindowChanged(
+    const QString &appId, const QString &windowId,
+    const QString &title, const QString &eventState)
+{
+    if (windowId.isEmpty())
+        return;
+
+    if (eventState == QStringLiteral("closed")) {
+        m_observedWindows.remove(windowId);
+        const QString previousPackage = m_windowOwners.take(windowId);
+        if (!previousPackage.isEmpty())
+            emit applicationWindowChanged(previousPackage, windowId,
+                                          title, QStringLiteral("closed"));
+        return;
+    }
+
+    if (eventState != QStringLiteral("opened") &&
+        eventState != QStringLiteral("updated"))
+        return;
+
+    const ObservedWindow window{appId.trimmed(), title};
+    m_observedWindows.insert(windowId, window);
+    associateObservedWindow(windowId, window);
+}
+
+void WaydroidRuntimeAdapter::associateObservedWindow(
+    const QString &windowId, const ObservedWindow &window)
+{
+    const QString nextPackage = mappedPackageForAppId(window.appId);
+    const QString previousPackage = m_windowOwners.value(windowId);
+
+    if (previousPackage == nextPackage) {
+        if (nextPackage.isEmpty())
+            emit unassociatedWindowChanged(window.appId, windowId, window.title);
+        return;
+    }
+
+    if (!previousPackage.isEmpty()) {
+        emit applicationWindowChanged(previousPackage, windowId,
+                                      window.title, QStringLiteral("closed"));
+        m_windowOwners.remove(windowId);
+    }
+
+    if (!nextPackage.isEmpty()) {
+        m_windowOwners.insert(windowId, nextPackage);
+        emit applicationWindowChanged(nextPackage, windowId,
+                                      window.title, QStringLiteral("opened"));
+    } else {
+        emit unassociatedWindowChanged(window.appId, windowId, window.title);
+    }
 }
