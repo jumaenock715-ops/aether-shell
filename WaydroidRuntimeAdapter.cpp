@@ -311,22 +311,27 @@ bool WaydroidRuntimeAdapter::isInstalledPackage(const QString &packageName) cons
     return false;
 }
 
-QString WaydroidRuntimeAdapter::mappedPackageForAppId(const QString &appId) const
+QString WaydroidRuntimeAdapter::mappedPackageForWindow(const QString &windowId) const
 {
-    const QString packageName = m_windowAppIdToPackage.value(appId);
+    const QString packageName = m_windowPackageMappings.value(windowId);
     return !packageName.isEmpty() && isInstalledPackage(packageName)
         ? packageName : QString();
 }
 
-bool WaydroidRuntimeAdapter::registerWindowAppIdMapping(
-    const QString &appId, const QString &packageName, QString *error)
+bool WaydroidRuntimeAdapter::registerWindowPackageMapping(
+    const QString &windowId, const QString &packageName, QString *error)
 {
-    const QString normalizedAppId = appId.trimmed();
+    const QString normalizedWindowId = windowId.trimmed();
     const QString normalizedPackage = packageName.trimmed();
-    if (normalizedAppId.isEmpty() || normalizedAppId.size() > 256 ||
+    if (normalizedWindowId.isEmpty() || normalizedWindowId.size() > 256 ||
         !validPackageName(normalizedPackage)) {
         if (error)
-            *error = QStringLiteral("A non-empty app ID and valid Android package are required.");
+            *error = QStringLiteral("A live Wayland window identifier and valid Android package are required.");
+        return false;
+    }
+    if (!m_observedWindows.contains(normalizedWindowId)) {
+        if (error)
+            *error = QStringLiteral("The Wayland window is not currently being observed.");
         return false;
     }
     if (!isInstalledPackage(normalizedPackage)) {
@@ -335,22 +340,19 @@ bool WaydroidRuntimeAdapter::registerWindowAppIdMapping(
         return false;
     }
 
-    m_windowAppIdToPackage.insert(normalizedAppId, normalizedPackage);
-    for (auto it = m_observedWindows.cbegin(); it != m_observedWindows.cend(); ++it) {
-        if (it->appId == normalizedAppId)
-            associateObservedWindow(it.key(), it.value());
-    }
+    m_windowPackageMappings.insert(normalizedWindowId, normalizedPackage);
+    associateObservedWindow(normalizedWindowId,
+                            m_observedWindows.value(normalizedWindowId));
     return true;
 }
 
-void WaydroidRuntimeAdapter::clearWindowAppIdMapping(const QString &appId)
+void WaydroidRuntimeAdapter::clearWindowPackageMapping(const QString &windowId)
 {
-    const QString normalizedAppId = appId.trimmed();
-    m_windowAppIdToPackage.remove(normalizedAppId);
-    for (auto it = m_observedWindows.cbegin(); it != m_observedWindows.cend(); ++it) {
-        if (it->appId == normalizedAppId)
-            associateObservedWindow(it.key(), it.value());
-    }
+    const QString normalizedWindowId = windowId.trimmed();
+    m_windowPackageMappings.remove(normalizedWindowId);
+    const auto it = m_observedWindows.constFind(normalizedWindowId);
+    if (it != m_observedWindows.cend())
+        associateObservedWindow(normalizedWindowId, it.value());
 }
 
 void WaydroidRuntimeAdapter::setWindowTracker(WaylandWindowTracker *tracker)
@@ -376,6 +378,7 @@ void WaydroidRuntimeAdapter::handleWindowChanged(
 
     if (eventState == QStringLiteral("closed")) {
         m_observedWindows.remove(windowId);
+        m_windowPackageMappings.remove(windowId);
         const QString previousPackage = m_windowOwners.take(windowId);
         if (!previousPackage.isEmpty())
             emit applicationWindowChanged(previousPackage, windowId,
@@ -395,7 +398,7 @@ void WaydroidRuntimeAdapter::handleWindowChanged(
 void WaydroidRuntimeAdapter::associateObservedWindow(
     const QString &windowId, const ObservedWindow &window)
 {
-    const QString nextPackage = mappedPackageForAppId(window.appId);
+    const QString nextPackage = mappedPackageForWindow(windowId);
     const QString previousPackage = m_windowOwners.value(windowId);
 
     if (previousPackage == nextPackage) {
