@@ -30,7 +30,7 @@ Item {
                 QuickTile { width: parent.cw; label: "Wi-Fi";       subtitle: System.wifi ? "Connected" : "Off"; on: System.wifi;      onClicked: System.wifi = !System.wifi }
                 QuickTile { width: parent.cw; label: "Bluetooth";   subtitle: System.bluetooth ? "On" : "Off"; on: System.bluetooth; onClicked: System.bluetooth = !System.bluetooth }
                 QuickTile { width: parent.cw; label: "Dark mode";   subtitle: Theme.dark ? "On" : "Off";       on: Theme.dark;        onClicked: SessionSettings.setDarkMode(!Theme.dark) }
-                QuickTile { width: parent.cw; label: "Do not disturb"; subtitle: System.dnd ? "On" : "Off";   on: System.dnd;        onClicked: System.dnd = !System.dnd }
+                QuickTile { width: parent.cw; label: "Do not disturb"; subtitle: SessionSettings.doNotDisturb ? "On" : "Off"; on: SessionSettings.doNotDisturb; onClicked: SessionSettings.setDoNotDisturb(!SessionSettings.doNotDisturb) }
             }
 
             Column {
