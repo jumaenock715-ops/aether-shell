@@ -12,6 +12,7 @@ class NetworkService final : public QObject
     Q_PROPERTY(bool available READ available NOTIFY availableChanged)
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled NOTIFY wifiEnabledChanged)
     Q_PROPERTY(bool scanning READ scanning NOTIFY scanningChanged)
+    Q_PROPERTY(bool connecting READ connecting NOTIFY connectingChanged)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString activeSsid READ activeSsid NOTIFY activeSsidChanged)
     Q_PROPERTY(QVariantList accessPoints READ accessPoints NOTIFY accessPointsChanged)
@@ -23,6 +24,7 @@ public:
     bool available() const { return m_available; }
     bool wifiEnabled() const { return m_wifiEnabled; }
     bool scanning() const { return m_scanning; }
+    bool connecting() const { return m_connecting; }
     QString status() const { return m_status; }
     QString activeSsid() const { return m_activeSsid; }
     QVariantList accessPoints() const { return m_accessPoints; }
@@ -38,6 +40,7 @@ signals:
     void availableChanged();
     void wifiEnabledChanged();
     void scanningChanged();
+    void connectingChanged();
     void statusChanged();
     void activeSsidChanged();
     void accessPointsChanged();
@@ -50,10 +53,15 @@ private:
     void setStatus(const QString &status);
     void updateActiveConnection();
     void updateAccessPoints();
+    void pollConnection();
+    void setConnecting(bool connecting);
 
     bool m_available = false;
     bool m_wifiEnabled = false;
     bool m_scanning = false;
+    bool m_connecting = false;
+    int m_connectionPolls = 0;
+    QString m_pendingSsid;
     QString m_status = QStringLiteral("Unavailable");
     QString m_activeSsid;
     QString m_lastError;
