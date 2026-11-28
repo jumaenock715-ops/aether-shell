@@ -1,0 +1,14 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'org.aetheros.bridge'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'org.aetheros.bridge'
+        minSdk 28
+        targetSdk 35
+        versionCode 1
+        versionName '0.1'
+    }
+}
