@@ -3,6 +3,9 @@
 #include <QQmlContext>
 #include "ApplicationService.h"
 #include "NotificationService.h"
+#include "AudioService.h"
+#include "ClipboardService.h"
+#include "FileService.h"
 #include "SessionManager.h"
 #include "AndroidSessionManager.h"
 #include "SessionSettings.h"
@@ -21,6 +24,17 @@ int main(int argc, char *argv[])
     applicationService.reload();
 
     NotificationService notificationService;
+    AudioService audioService;
+    ClipboardService clipboardService;
+    FileService fileService;
+    QObject::connect(&audioService, &AudioService::operationFailed, &notificationService,
+                     [&notificationService](const QString &op, const QString &reason) {
+        Q_UNUSED(op); notificationService.push(QStringLiteral("Audio"), reason);
+    });
+    QObject::connect(&fileService, &FileService::operationFailed, &notificationService,
+                     [&notificationService](const QString &op, const QString &reason) {
+        Q_UNUSED(op); notificationService.push(QStringLiteral("Files"), reason);
+    });
     SessionManager sessionManager;
     SessionSettings sessionSettings;
     WaylandWindowTracker waylandWindowTracker;
@@ -37,6 +51,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("AppCatalog", &applicationService);
     // Preserve the existing Notifications QML API while moving its model into C++.
     engine.rootContext()->setContextProperty("Notifications", &notificationService);
+    engine.rootContext()->setContextProperty("Audio", &audioService);
+    engine.rootContext()->setContextProperty("Clipboard", &clipboardService);
+    engine.rootContext()->setContextProperty("FileService", &fileService);
     engine.rootContext()->setContextProperty("SessionManager", &sessionManager);
     engine.rootContext()->setContextProperty("SessionSettings", &sessionSettings);
     engine.rootContext()->setContextProperty("AndroidRuntime", &androidRuntimeAdapter);
