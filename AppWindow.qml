@@ -10,6 +10,7 @@ Rectangle {
 
     signal closeRequested()
     signal focusRequested()
+    signal minimizeRequested()
 
     width: 660; height: 440
     radius: maximized ? 0 : 18
@@ -72,7 +73,7 @@ Rectangle {
                 color: minimizeArea.containsMouse ? Theme.border : "transparent"
                 Text { anchors.centerIn: parent; text: "—"; color: Theme.text; font.pixelSize: 13 }
                 MouseArea { id: minimizeArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                    onClicked: root.visible = false }
+                    onClicked: root.minimizeRequested() }
             }
             Rectangle {
                 width: 34; height: 28; radius: 7
