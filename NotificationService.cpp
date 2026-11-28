@@ -14,7 +14,7 @@ NotificationService::NotificationService(QObject *parent) : QAbstractListModel(p
     m_dbusAdaptor = new NotificationDBusAdaptor(this);
     connect(this, &NotificationService::notificationClosed, m_dbusAdaptor, &NotificationDBusAdaptor::NotificationClosed);
     connect(this, &NotificationService::actionInvoked, m_dbusAdaptor, &NotificationDBusAdaptor::ActionInvoked);
-    const QDBusConnection bus = QDBusConnection::sessionBus();
+    QDBusConnection bus = QDBusConnection::sessionBus();
     if (!bus.isConnected()) {
         m_dbusStatus = QStringLiteral("session-bus-unavailable");
         qWarning() << "Aether notifications: session D-Bus is unavailable";
