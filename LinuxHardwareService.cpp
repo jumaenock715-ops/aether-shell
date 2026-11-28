@@ -5,6 +5,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QTextStream>
+#include <QTimer>
 #include <algorithm>
 
 namespace {
@@ -46,6 +47,9 @@ QString commandOutput(const QString &program, const QStringList &args, int timeo
 LinuxHardwareService::LinuxHardwareService(QObject *parent) : QObject(parent)
 {
     refresh();
+    auto *monitor = new QTimer(this);
+    connect(monitor, &QTimer::timeout, this, &LinuxHardwareService::refresh);
+    monitor->start(30000);
 }
 
 void LinuxHardwareService::setError(const QString &message)
@@ -140,8 +144,15 @@ void LinuxHardwareService::setBluetoothPowered(bool enabled)
 }
 void LinuxHardwareService::scanBluetooth()
 {
-    run(QStringLiteral("bluetoothctl"), {QStringLiteral("scan"), QStringLiteral("on")},
-        QStringLiteral("Bluetooth discovery started"));
+    if (!QProcess::startDetached(QStringLiteral("bluetoothctl"),
+                                 {QStringLiteral("--timeout"), QStringLiteral("10"),
+                                  QStringLiteral("scan"), QStringLiteral("on")})) {
+        setError(QStringLiteral("Bluetooth discovery could not be started."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    setError({});
+    emit operationFinished(true, QStringLiteral("Bluetooth discovery started"));
 }
 void LinuxHardwareService::pairBluetooth(const QString &address)
 {
@@ -192,16 +203,16 @@ void LinuxHardwareService::setMuted(bool muted)
 }
 void LinuxHardwareService::suspend()
 {
-    run(QStringLiteral("systemctl"), {QStringLiteral("suspend")},
-        QStringLiteral("Suspend requested"));
+    if (!QProcess::startDetached(QStringLiteral("systemctl"), {QStringLiteral("suspend")}))
+        setError(QStringLiteral("Could not request suspend. Check systemd and polkit permissions."));
 }
 void LinuxHardwareService::restart()
 {
-    run(QStringLiteral("systemctl"), {QStringLiteral("reboot")},
-        QStringLiteral("Restart requested"));
+    if (!QProcess::startDetached(QStringLiteral("systemctl"), {QStringLiteral("reboot")}))
+        setError(QStringLiteral("Could not request restart. Check systemd and polkit permissions."));
 }
 void LinuxHardwareService::shutdown()
 {
-    run(QStringLiteral("systemctl"), {QStringLiteral("poweroff")},
-        QStringLiteral("Shutdown requested"));
+    if (!QProcess::startDetached(QStringLiteral("systemctl"), {QStringLiteral("poweroff")}))
+        setError(QStringLiteral("Could not request shutdown. Check systemd and polkit permissions."));
 }
