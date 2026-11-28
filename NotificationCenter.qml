@@ -34,8 +34,28 @@ Item {
             id: list
             anchors { left: parent.left; right: parent.right; top: header.bottom; bottom: footer.top; margins: 18 }
             anchors.topMargin: 14
-            clip: true; spacing: 12
+            clip: true; spacing: 8
             model: Notifications.items
+            section.property: "appName"
+            section.criteria: ViewSection.FullString
+            section.delegate: Rectangle {
+                required property string section
+                width: list.width
+                height: 26
+                color: "transparent"
+                Row {
+                    anchors.fill: parent
+                    spacing: 8
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: section.length > 0 ? section : "Aether"
+                        color: Theme.text
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+                    Rectangle { anchors.verticalCenter: parent.verticalCenter; width: 5; height: 5; radius: 3; color: Theme.accent2 }
+                }
+            }
             delegate: Rectangle {
                 required property string appName
                 required property string title
@@ -44,7 +64,7 @@ Item {
                 required property int notificationId
                 required property var actions
                 width: list.width
-                height: card.height + 24
+                height: card.height + 26
                 radius: 18; color: Theme.surface; border.color: Theme.border
                 Column {
                     id: card
