@@ -58,13 +58,14 @@ QVariant NotificationService::data(const QModelIndex &index, int role) const
     case TitleRole: return n.value(QStringLiteral("title"));
     case BodyRole: return n.value(QStringLiteral("body"));
     case TimeRole: return n.value(QStringLiteral("time"));
+    case ActionsRole: return n.value(QStringLiteral("actions"));
     default: return {};
     }
 }
 QHash<int, QByteArray> NotificationService::roleNames() const
 {
     return {{IdRole, "notificationId"}, {AppNameRole, "appName"}, {AppIconRole, "appIcon"},
-            {TitleRole, "title"}, {BodyRole, "body"}, {TimeRole, "time"}};
+            {TitleRole, "title"}, {BodyRole, "body"}, {TimeRole, "time"}, {ActionsRole, "actions"}};
 }
 int NotificationService::rowForId(uint id) const
 {
