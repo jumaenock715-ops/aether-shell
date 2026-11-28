@@ -11,6 +11,9 @@ const QString kNotificationPath = QStringLiteral("/org/freedesktop/Notifications
 }
 NotificationService::NotificationService(QObject *parent) : QAbstractListModel(parent)
 {
+    m_groupedItems.setSourceModel(this);
+    m_groupedItems.setSortRole(AppNameRole);
+    m_groupedItems.sort(0, Qt::AscendingOrder);
     m_dbusAdaptor = new NotificationDBusAdaptor(this);
     connect(this, &NotificationService::notificationClosed, m_dbusAdaptor, &NotificationDBusAdaptor::NotificationClosed);
     connect(this, &NotificationService::actionInvoked, m_dbusAdaptor, &NotificationDBusAdaptor::ActionInvoked);
@@ -42,6 +45,7 @@ NotificationService::~NotificationService()
     bus.unregisterService(kNotificationService);
 }
 QAbstractItemModel *NotificationService::items() { return this; }
+QAbstractItemModel *NotificationService::groupedItems() { return &m_groupedItems; }
 int NotificationService::count() const { return m_notifications.size(); }
 int NotificationService::rowCount(const QModelIndex &parent) const
 {
