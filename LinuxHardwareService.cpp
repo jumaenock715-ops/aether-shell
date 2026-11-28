@@ -23,18 +23,28 @@ int readInt(const QString &path, int fallback = -1)
     return ok ? value : fallback;
 }
 
-QString firstDevice(const QString &root, const QString &requiredType = {})
+QStringList deviceDirectories(const QString &root)
 {
-    const QStringList entries = QDir(root).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-    for (const QString &entry : entries) {
-        const QString path = root + QLatin1Char('/') + entry;
-        if (!requiredType.isEmpty() && readText(path + QStringLiteral("/type")) != requiredType)
-            continue;
-        if (entry == QStringLiteral("AC") || entry == QStringLiteral("USB"))
-            continue;
-        return path;
+    QDir dir(root);
+    const QFileInfoList entries = dir.entryInfoList(
+        QDir::Dirs | QDir::NoDotAndDotDot | QDir::Readable, QDir::Name);
+    QStringList paths;
+    for (const QFileInfo &entry : entries)
+        paths.append(entry.absoluteFilePath());
+    return paths;
+}
+
+QStringList parseControllers(const QString &listing)
+{
+    QStringList controllers;
+    static const QRegularExpression pattern(
+        QStringLiteral("^Controller\\s+([0-9A-Fa-f:]{17})\\s*(.*)$"));
+    for (const QString &line : listing.split(QLatin1Char('\\n'), Qt::SkipEmptyParts)) {
+        const auto match = pattern.match(line.trimmed());
+        if (match.hasMatch())
+            controllers.append(match.captured(1) + QStringLiteral("  ") + match.captured(2).trimmed());
     }
-    return {};
+    return controllers;
 }
 
 QString commandOutput(const QString &program, const QStringList &args, int timeout = 4000)
@@ -89,38 +99,100 @@ bool LinuxHardwareService::run(const QString &program, const QStringList &argume
 
 void LinuxHardwareService::refresh()
 {
-    const QString bt = commandOutput(QStringLiteral("bluetoothctl"),
-                                     {QStringLiteral("show")});
-    const bool btAvailable = bt.contains(QStringLiteral("Controller "))
-        && bt.contains(QStringLiteral("Powered:"));
-    const bool btPowered = bt.contains(QStringLiteral("Powered: yes"));
-    if (m_bluetoothAvailable != btAvailable || m_bluetoothPowered != btPowered) {
-        m_bluetoothAvailable = btAvailable;
-        m_bluetoothPowered = btPowered;
+    // Controller inventory is distinct from the list of remote Bluetooth devices.
+    const QString controllerListing = commandOutput(
+        QStringLiteral("bluetoothctl"), {QStringLiteral("list")});
+    const QStringList controllers = parseControllers(controllerListing);
+    bool anyPowered = false;
+    for (const QString &controller : controllers) {
+        const QString address = controller.section(QLatin1Char(' '), 0, 0);
+        const QString details = commandOutput(QStringLiteral("bluetoothctl"),
+                                               {QStringLiteral("show"), address});
+        anyPowered = anyPowered || details.contains(QStringLiteral("Powered: yes"));
+    }
+    const bool available = !controllers.isEmpty();
+    if (m_bluetoothControllers != controllers) {
+        m_bluetoothControllers = controllers;
+        emit bluetoothDevicesChanged();
+    }
+    if (m_bluetoothAvailable != available || m_bluetoothPowered != anyPowered) {
+        m_bluetoothAvailable = available;
+        m_bluetoothPowered = anyPowered;
         emit bluetoothChanged();
     }
 
     QStringList devices;
     const QString listing = commandOutput(QStringLiteral("bluetoothctl"),
                                            {QStringLiteral("devices")});
-    for (const QString &line : listing.split(QLatin1Char('\n'), Qt::SkipEmptyParts))
-        devices.append(line.trimmed());
+    for (const QString &line : listing.split(QLatin1Char('\\n'), Qt::SkipEmptyParts)) {
+        const QString trimmed = line.trimmed();
+        if (trimmed.startsWith(QStringLiteral("Device ")))
+            devices.append(trimmed);
+    }
     if (m_bluetoothDevices != devices) {
         m_bluetoothDevices = devices;
         emit bluetoothDevicesChanged();
     }
 
-    const QString batteryDir = firstDevice(QStringLiteral("/sys/class/power_supply"), QStringLiteral("Battery"));
-    const bool present = !batteryDir.isEmpty()
-        && readText(batteryDir + QStringLiteral("/type")) == QStringLiteral("Battery");
-    const int capacity = present ? readInt(batteryDir + QStringLiteral("/capacity"), 0) : 0;
+    // A battery is included only when the kernel identifies it as type Battery
+    // and, when exposed, reports it present. AC/USB supplies are never counted.
+    struct BatteryReading { QString label; int capacity; double fullEnergy; double currentEnergy; };
+    QList<BatteryReading> batteries;
+    for (const QString &path : deviceDirectories(QStringLiteral("/sys/class/power_supply"))) {
+        if (readText(path + QStringLiteral("/type")) != QStringLiteral("Battery"))
+            continue;
+        const QString presentText = readText(path + QStringLiteral("/present"));
+        if (!presentText.isEmpty() && presentText != QStringLiteral("1"))
+            continue;
+        bool capacityOk = false;
+        const int capacity = readText(path + QStringLiteral("/capacity")).toInt(&capacityOk);
+        if (!capacityOk || capacity < 0 || capacity > 100)
+            continue;
+
+        double full = readText(path + QStringLiteral("/energy_full")).toDouble();
+        double now = readText(path + QStringLiteral("/energy_now")).toDouble();
+        if (full <= 0.0 || now < 0.0) {
+            full = readText(path + QStringLiteral("/charge_full")).toDouble();
+            now = readText(path + QStringLiteral("/charge_now")).toDouble();
+        }
+        if (full <= 0.0 || now < 0.0) {
+            full = 0.0;
+            now = 0.0;
+        }
+        batteries.append({QFileInfo(path).fileName(), capacity, full, now});
+    }
+
+    QStringList batteryNames;
+    double weightedPercent = 0.0;
+    double totalFull = 0.0;
+    int simpleTotal = 0;
+    for (const BatteryReading &battery : batteries) {
+        batteryNames.append(battery.label + QStringLiteral(": ")
+                            + QString::number(battery.capacity) + QLatin1Char('%'));
+        if (battery.fullEnergy > 0.0) {
+            weightedPercent += (battery.currentEnergy / battery.fullEnergy) * 100.0
+                               * battery.fullEnergy;
+            totalFull += battery.fullEnergy;
+        }
+        simpleTotal += battery.capacity;
+    }
+    const bool present = !batteries.isEmpty();
+    const int capacity = present
+        ? (totalFull > 0.0 ? qBound(0, qRound(weightedPercent / totalFull), 100)
+                           : qRound(static_cast<double>(simpleTotal) / batteries.size()))
+        : 0;
+    if (m_batteryDevices != batteryNames) {
+        m_batteryDevices = batteryNames;
+        emit batteryChanged();
+    }
     if (m_batteryPresent != present || m_batteryPercent != capacity) {
         m_batteryPresent = present;
         m_batteryPercent = capacity;
         emit batteryChanged();
     }
 
-    const QString backlightDir = firstDevice(QStringLiteral("/sys/class/backlight"));
+    const QStringList backlights = deviceDirectories(QStringLiteral("/sys/class/backlight"));
+    const QString backlightDir = backlights.isEmpty() ? QString() : backlights.first();
     const int maxBrightness = backlightDir.isEmpty() ? -1
         : readInt(backlightDir + QStringLiteral("/max_brightness"));
     const int currentBrightness = backlightDir.isEmpty() ? -1
