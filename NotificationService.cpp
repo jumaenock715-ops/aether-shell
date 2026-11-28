@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QDBusConnection>
 #include <QDebug>
+#include <QTimer>
 #include <utility>
 namespace {
 const QString kNotificationService = QStringLiteral("org.freedesktop.Notifications");
@@ -96,6 +97,21 @@ uint NotificationService::postDesktopNotification(
     n.insert(QStringLiteral("actions"), actions);
     n.insert(QStringLiteral("hints"), hints);
     n.insert(QStringLiteral("expireTimeout"), expireTimeout);
+    if (m_expiryTimers.contains(id)) {
+        QTimer *oldTimer = m_expiryTimers.take(id);
+        oldTimer->stop();
+        oldTimer->deleteLater();
+    }
+    if (expireTimeout >= 0) {
+        auto *timer = new QTimer(this);
+        timer->setSingleShot(true);
+        connect(timer, &QTimer::timeout, this, [this, id]() {
+            closeNotification(id, 1); // expired
+        });
+        m_expiryTimers.insert(id, timer);
+        timer->start(expireTimeout == 0 ? 5000 : expireTimeout);
+    }
+
     if (row >= 0) {
         m_notifications[row] = n;
         emit dataChanged(index(row, 0), index(row, 0));
@@ -116,6 +132,11 @@ bool NotificationService::closeNotification(uint id, uint reason)
 {
     const int row = rowForId(id);
     if (row < 0) return false;
+    if (m_expiryTimers.contains(id)) {
+        QTimer *timer = m_expiryTimers.take(id);
+        timer->stop();
+        timer->deleteLater();
+    }
     beginRemoveRows(QModelIndex(), row, row);
     m_notifications.removeAt(row);
     endRemoveRows();
@@ -139,6 +160,12 @@ void NotificationService::clear()
     ids.reserve(m_notifications.size());
     for (const QVariantMap &n : std::as_const(m_notifications))
         ids.append(n.value(QStringLiteral("id")).toUInt());
+    for (QTimer *timer : std::as_const(m_expiryTimers)) {
+        timer->stop();
+        timer->deleteLater();
+    }
+    m_expiryTimers.clear();
+
     beginResetModel();
     m_notifications.clear();
     endResetModel();
