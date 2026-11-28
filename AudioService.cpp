@@ -47,6 +47,8 @@ void AudioService::refresh()
 {
     QString output;
     m_available = false;
+    m_inputVolume = 0;
+    m_inputMuted = false;
     if (run(QStringLiteral("wpctl"), {QStringLiteral("get-volume"), QStringLiteral("@DEFAULT_AUDIO_SINK@")}, &output)) {
         const auto match = QRegularExpression(QStringLiteral("Volume:\\s*([0-9.]+)(?:\\s+\\[MUTED\\])?")).match(output);
         if (match.hasMatch()) {
