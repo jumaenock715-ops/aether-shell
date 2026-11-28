@@ -23,12 +23,17 @@ int readInt(const QString &path, int fallback = -1)
     return ok ? value : fallback;
 }
 
-QString firstDevice(const QString &root)
+QString firstDevice(const QString &root, const QString &requiredType = {})
 {
     const QStringList entries = QDir(root).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-    for (const QString &entry : entries)
-        if (entry != QStringLiteral("AC") && entry != QStringLiteral("USB"))
-            return root + QLatin1Char('/') + entry;
+    for (const QString &entry : entries) {
+        const QString path = root + QLatin1Char('/') + entry;
+        if (!requiredType.isEmpty() && readText(path + QStringLiteral("/type")) != requiredType)
+            continue;
+        if (entry == QStringLiteral("AC") || entry == QStringLiteral("USB"))
+            continue;
+        return path;
+    }
     return {};
 }
 
@@ -86,7 +91,7 @@ void LinuxHardwareService::refresh()
 {
     const QString bt = commandOutput(QStringLiteral("bluetoothctl"),
                                      {QStringLiteral("show")});
-    const bool btAvailable = !bt.isEmpty();
+    const bool btAvailable = bt.contains(QStringLiteral("Controller "))\n        && bt.contains(QStringLiteral("Powered:"));
     const bool btPowered = bt.contains(QStringLiteral("Powered: yes"));
     if (m_bluetoothAvailable != btAvailable || m_bluetoothPowered != btPowered) {
         m_bluetoothAvailable = btAvailable;
@@ -104,7 +109,7 @@ void LinuxHardwareService::refresh()
         emit bluetoothDevicesChanged();
     }
 
-    const QString batteryDir = firstDevice(QStringLiteral("/sys/class/power_supply"));
+    const QString batteryDir = firstDevice(QStringLiteral("/sys/class/power_supply"), QStringLiteral("Battery"));
     const bool present = !batteryDir.isEmpty()
         && readText(batteryDir + QStringLiteral("/type")) == QStringLiteral("Battery");
     const int capacity = present ? readInt(batteryDir + QStringLiteral("/capacity"), 0) : 0;
