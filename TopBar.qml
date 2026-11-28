@@ -61,7 +61,7 @@ Rectangle {
             Text { text: "Wi-Fi";  color: System.wifi ? Theme.text : Theme.textDim; font.pixelSize: 12 }
             Text { text: "BT";     color: System.bluetooth ? Theme.text : Theme.textDim; font.pixelSize: 12 }
             Text { visible: System.hardware && System.hardware.batteryPresent; text: (System.batteryStatus === "Charging" ? "⚡ " : "") + System.battery + "%"; color: System.battery <= 15 && System.batteryStatus === "Discharging" ? "#E05A5A" : Theme.text; font.pixelSize: 12 }
-            Text { visible: !System.hardware || !System.hardware.batteryPresent; text: "AC"; color: Theme.textDim; font.pixelSize: 12 }
+            
             Rectangle {
                 visible: Notifications.count > 0
                 width: 16; height: 16; radius: 8; color: Theme.accent
