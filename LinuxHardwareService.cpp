@@ -255,7 +255,8 @@ void LinuxHardwareService::removeBluetooth(const QString &address)
 }
 void LinuxHardwareService::setBrightness(int percent)
 {
-    const QString dir = firstDevice(QStringLiteral("/sys/class/backlight"));
+    const QStringList backlights = deviceDirectories(QStringLiteral("/sys/class/backlight"));
+    const QString dir = backlights.isEmpty() ? QString() : backlights.first();
     const int maximum = dir.isEmpty() ? -1 : readInt(dir + QStringLiteral("/max_brightness"));
     if (maximum <= 0) {
         setError(QStringLiteral("No backlight device is exposed by this hardware."));
