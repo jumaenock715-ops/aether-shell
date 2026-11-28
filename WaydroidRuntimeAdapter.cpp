@@ -316,6 +316,8 @@ QString WaydroidRuntimeAdapter::mappedPackageForWindow(const QString &windowId) 
     // Prefer an explicitly registered mapping from a trusted runtime bridge.
     QString packageName = m_windowPackageMappings.value(windowId);
 
+    // This namespace is a Waydroid convention, not an authenticated origin
+    // claim; use it only for UI-level association, never as a security boundary.
     // Waydroid's own multi-window HWC sets xdg_toplevel app_id to
     // "waydroid." + its internal appID. Its window-control HAL compares that
     // appID directly with the Android packageName. Accept only this
