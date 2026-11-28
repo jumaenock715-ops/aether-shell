@@ -91,7 +91,8 @@ void LinuxHardwareService::refresh()
 {
     const QString bt = commandOutput(QStringLiteral("bluetoothctl"),
                                      {QStringLiteral("show")});
-    const bool btAvailable = bt.contains(QStringLiteral("Controller "))\n        && bt.contains(QStringLiteral("Powered:"));
+    const bool btAvailable = bt.contains(QStringLiteral("Controller "))
+        && bt.contains(QStringLiteral("Powered:"));
     const bool btPowered = bt.contains(QStringLiteral("Powered: yes"));
     if (m_bluetoothAvailable != btAvailable || m_bluetoothPowered != btPowered) {
         m_bluetoothAvailable = btAvailable;
