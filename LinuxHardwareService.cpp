@@ -7,6 +7,7 @@
 #include <QRegularExpression>
 #include <QTextStream>
 #include <QTimer>
+#include <QVariantMap>
 #include <algorithm>
 
 namespace {
@@ -123,73 +124,73 @@ void LinuxHardwareService::refresh()
     }
 
     QStringList devices;
-    const QString listing = commandOutput(QStringLiteral("bluetoothctl"),
-                                           {QStringLiteral("devices")});
+    QVariantList deviceDetails;
+    const QString listing = commandOutput(QStringLiteral("bluetoothctl"), {QStringLiteral("devices")});
+    static const QRegularExpression devicePattern(QStringLiteral("^Device\\s+([0-9A-Fa-f:]{17})\\s*(.*)$"));
     for (const QString &line : listing.split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
-        const QString trimmed = line.trimmed();
-        if (trimmed.startsWith(QStringLiteral("Device ")))
-            devices.append(trimmed);
+        const auto match = devicePattern.match(line.trimmed());
+        if (!match.hasMatch()) continue;
+        const QString address = match.captured(1);
+        const QString name = match.captured(2).trimmed();
+        const QString info = commandOutput(QStringLiteral("bluetoothctl"), {QStringLiteral("info"), address});
+        const bool paired = info.contains(QStringLiteral("Paired: yes"));
+        const bool trusted = info.contains(QStringLiteral("Trusted: yes"));
+        const bool connected = info.contains(QStringLiteral("Connected: yes"));
+        devices.append(address + QStringLiteral("  ") + name);
+        deviceDetails.append(QVariantMap{{QStringLiteral("address"), address},
+            {QStringLiteral("name"), name}, {QStringLiteral("paired"), paired},
+            {QStringLiteral("trusted"), trusted}, {QStringLiteral("connected"), connected}});
     }
-    if (m_bluetoothDevices != devices) {
+    if (m_bluetoothDevices != devices || m_bluetoothDeviceDetails != deviceDetails) {
         m_bluetoothDevices = devices;
+        m_bluetoothDeviceDetails = deviceDetails;
         emit bluetoothDevicesChanged();
     }
 
-    // A battery is included only when the kernel identifies it as type Battery
-    // and, when exposed, reports it present. AC/USB supplies are never counted.
-    struct BatteryReading { QString label; int capacity; double fullEnergy; double currentEnergy; };
+    struct BatteryReading { QString label; int percent; double full; double now; int metric; };
     QList<BatteryReading> batteries;
     for (const QString &path : deviceDirectories(QStringLiteral("/sys/class/power_supply"))) {
-        if (readText(path + QStringLiteral("/type")) != QStringLiteral("Battery"))
-            continue;
+        if (readText(path + QStringLiteral("/type")) != QStringLiteral("Battery")) continue;
         const QString presentText = readText(path + QStringLiteral("/present"));
-        if (!presentText.isEmpty() && presentText != QStringLiteral("1"))
-            continue;
+        if (!presentText.isEmpty() && presentText != QStringLiteral("1")) continue;
         bool capacityOk = false;
-        const int capacity = readText(path + QStringLiteral("/capacity")).toInt(&capacityOk);
-        if (!capacityOk || capacity < 0 || capacity > 100)
-            continue;
-
+        int capacity = readText(path + QStringLiteral("/capacity")).toInt(&capacityOk);
+        if (capacityOk && (capacity < 0 || capacity > 100)) capacityOk = false;
         double full = readText(path + QStringLiteral("/energy_full")).toDouble();
         double now = readText(path + QStringLiteral("/energy_now")).toDouble();
-        if (full <= 0.0 || now < 0.0) {
+        int metric = full > 0.0 && now >= 0.0 ? 1 : 0;
+        if (!metric) {
             full = readText(path + QStringLiteral("/charge_full")).toDouble();
             now = readText(path + QStringLiteral("/charge_now")).toDouble();
+            if (full > 0.0 && now >= 0.0) metric = 2;
         }
-        if (full <= 0.0 || now < 0.0) {
-            full = 0.0;
-            now = 0.0;
+        if (!capacityOk && metric) {
+            capacity = qBound(0, qRound(now / full * 100.0), 100);
+            capacityOk = true;
         }
-        batteries.append({QFileInfo(path).fileName(), capacity, full, now});
+        if (capacityOk) batteries.append({QFileInfo(path).fileName(), capacity, full, now, metric});
     }
-
     QStringList batteryNames;
-    double weightedPercent = 0.0;
-    double totalFull = 0.0;
-    int simpleTotal = 0;
+    int percentSum = 0;
+    double totalFull = 0.0, totalNow = 0.0;
+    const int commonMetric = batteries.isEmpty() ? 0 : batteries.first().metric;
+    bool comparable = commonMetric != 0;
     for (const BatteryReading &battery : batteries) {
-        batteryNames.append(battery.label + QStringLiteral(": ")
-                            + QString::number(battery.capacity) + QLatin1Char('%'));
-        if (battery.fullEnergy > 0.0) {
-            weightedPercent += (battery.currentEnergy / battery.fullEnergy) * 100.0
-                               * battery.fullEnergy;
-            totalFull += battery.fullEnergy;
+        batteryNames.append(battery.label + QStringLiteral(": ") + QString::number(battery.percent) + QLatin1Char('%'));
+        percentSum += battery.percent;
+        if (battery.metric != commonMetric) comparable = false;
+        if (battery.metric == commonMetric && commonMetric != 0) {
+            totalFull += battery.full;
+            totalNow += battery.now;
         }
-        simpleTotal += battery.capacity;
     }
     const bool present = !batteries.isEmpty();
-    const int capacity = present
-        ? (totalFull > 0.0 ? qBound(0, qRound(weightedPercent / totalFull), 100)
-                           : qRound(static_cast<double>(simpleTotal) / batteries.size()))
-        : 0;
-    if (m_batteryDevices != batteryNames) {
-        m_batteryDevices = batteryNames;
-        emit batteryChanged();
-    }
+    const int capacity = !present ? 0 : (comparable && totalFull > 0.0
+        ? qBound(0, qRound(totalNow / totalFull * 100.0), 100)
+        : qRound(static_cast<double>(percentSum) / batteries.size()));
+    if (m_batteryDevices != batteryNames) { m_batteryDevices = batteryNames; emit batteryChanged(); }
     if (m_batteryPresent != present || m_batteryPercent != capacity) {
-        m_batteryPresent = present;
-        m_batteryPercent = capacity;
-        emit batteryChanged();
+        m_batteryPresent = present; m_batteryPercent = capacity; emit batteryChanged();
     }
 
     const QStringList backlights = deviceDirectories(QStringLiteral("/sys/class/backlight"));
