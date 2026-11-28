@@ -50,7 +50,7 @@ The Android provider has a concrete Waydroid adapter. When the `waydroid` execut
 
 `WaylandWindowTracker` opens a separate Wayland client connection and discovers `ext-foreign-toplevel-list-v1` at runtime. It reports mapped-window creation, metadata updates, and closure without attempting to control other applications' windows. This protocol does not report activation, so active/foreground state is not inferred.
 
-The Waydroid adapter accepts explicit live-window-ID-to-package mappings through `registerWindowPackageMapping()`. A mapping is accepted only for a currently observed window and an installed Android package. Unmapped windows are reported as unassociated; window titles and compositor app IDs are never used to guess package identity. The mapping registry is currently in-memory and awaits a trusted Waydroid/Android surface-metadata source. The wlr foreign-toplevel protocol fallback is not implemented yet.
+The Waydroid adapter accepts explicit live-window-ID-to-package mappings through `registerWindowPackageMapping()`, and automatically resolves standard Waydroid multi-window app IDs of the form `waydroid.<package-name>`. It strips only that exact Waydroid namespace and validates the package against the installed Android catalogue; it does not infer identity from titles or arbitrary compositor app IDs. This convention depends on Waydroid multi-window mode (`persist.waydroid.multi_windows=true`) being enabled in the Android image. The resolver is implemented in source but has not been validated against a running Waydroid image. Explicit mappings remain available for other trusted runtime bridges, and the mapping registry is in-memory. The wlr foreign-toplevel protocol fallback is not implemented yet.
 
 Window tracking is optional at build time. If `libwayland-dev` and `libwayland-bin` are available, CMake generates the protocol bindings and links `wayland-client`. Otherwise the shell still builds without this feature and the tracker reports `unsupported-build`.
 
@@ -72,7 +72,8 @@ Needs Qt 6.5 or newer (for loadFromModule). Optional foreign-toplevel tracking: 
 - `ApplicationService.cpp/.h`: unified catalogue and provider-based launch dispatcher (Linux and optional Waydroid providers)
 - `AndroidRuntimeAdapter.h`: Android runtime provider interface
 - `WaydroidRuntimeAdapter.cpp/.h`: asynchronous Waydroid CLI adapter and explicit Android window identity resolver
-- `WaylandWindowTracker.cpp/.h`: read-only foreign-toplevel observer\n- `protocols/ext-foreign-toplevel-list-v1.xml`: vendored Wayland protocol definition
+- `WaylandWindowTracker.cpp/.h`: read-only foreign-toplevel observer
+- `protocols/ext-foreign-toplevel-list-v1.xml`: vendored Wayland protocol definition
 - `AppCatalog.cpp/.h`: themed icon image provider
 - `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
 - `AppWindow`, `SettingsApp`, `PlaceholderApp`: window frame and app content
