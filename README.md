@@ -70,7 +70,7 @@ Window tracking is optional at build time. If `libwayland-dev` and `libwayland-b
 ## Build (Ubuntu / Debian)
     sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev \
          qml6-module-qtquick qml6-module-qtquick-window
-    # Optional host desktop utilities: pipewire-bin pulseaudio-utils libglib2.0-bin
+    # Optional host desktop utilities (audio + trash):\n    sudo apt install pipewire-bin pulseaudio-utils libglib2.0-bin
     cmake -B build -S .
     cmake --build build -j
     ./build/aether-shell
@@ -93,5 +93,5 @@ Needs Qt 6.5 or newer (for loadFromModule). Optional foreign-toplevel tracking: 
 - `protocols/ext-foreign-toplevel-list-v1.xml`: vendored Wayland protocol definition
 - `AppCatalog.cpp/.h`: themed icon image provider
 - `TopBar`, `Dock`, `Launcher`, `QuickSettings`, `NotificationCenter`: shell components
-- `AppWindow`, `SettingsApp`, `PlaceholderApp`: window frame and app content
+- `AppWindow`, `SettingsApp`, `FilesApp`, `PlaceholderApp`: window frame and app content
 - `System.qml` is still demonstration state; hardware/system integration is not implemented
