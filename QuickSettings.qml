@@ -109,6 +109,17 @@ Item {
                 }
             }
 
+            Column {
+                width: parent.width
+                spacing: 6
+                Text { text: "Display brightness"; color: Theme.textDim; font.pixelSize: 12 }
+                AetherSlider {
+                    width: parent.width
+                    value: System.brightness
+                    onMoved: (v) => System.brightness = v
+                }
+            }
+
             Text {
                 width: parent.width
                 wrapMode: Text.WordWrap
