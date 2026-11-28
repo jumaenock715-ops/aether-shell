@@ -68,6 +68,7 @@ Item {
                         Text { text: modelData; color: Theme.text; font.pixelSize: 10; width: 150; elide: Text.ElideRight }
                         Text { text: "Pair"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.pairBluetooth(fields[1]) } }
                         Text { text: "Connect"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.connectBluetooth(fields[1]) } }
+                        Text { text: "Disconnect"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.disconnectBluetooth(fields[1]) } }
                         Text { text: "Remove"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.removeBluetooth(fields[1]) } }
                     }
                 }
