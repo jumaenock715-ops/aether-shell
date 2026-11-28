@@ -59,6 +59,16 @@ void AudioService::refresh()
         if (run(QStringLiteral("pactl"), {QStringLiteral("get-sink-mute"), QStringLiteral("@DEFAULT_SINK@")}, &output))
             m_muted = output.contains(QStringLiteral("yes"));
     }
+    if (run(QStringLiteral("wpctl"), {QStringLiteral("get-volume"), QStringLiteral("@DEFAULT_AUDIO_SOURCE@")}, &output)) {
+        const auto inputMatch = QRegularExpression(QStringLiteral("Volume:\\s*([0-9.]+)")).match(output);
+        if (inputMatch.hasMatch()) m_inputVolume = qBound(0, qRound(inputMatch.captured(1).toDouble() * 100.0), 100);
+        m_inputMuted = output.contains(QStringLiteral("[MUTED]"));
+    } else if (run(QStringLiteral("pactl"), {QStringLiteral("get-source-volume"), QStringLiteral("@DEFAULT_SOURCE@")}, &output)) {
+        const auto inputMatch = QRegularExpression(QStringLiteral("(\\d+)%")).match(output);
+        if (inputMatch.hasMatch()) m_inputVolume = qBound(0, inputMatch.captured(1).toInt(), 100);
+        if (run(QStringLiteral("pactl"), {QStringLiteral("get-source-mute"), QStringLiteral("@DEFAULT_SOURCE@")}, &output))
+            m_inputMuted = output.contains(QStringLiteral("yes"));
+    }
     refreshDevices();
     emit changed();
 }
@@ -79,6 +89,25 @@ bool AudioService::setMuted(bool muted)
     bool ok = run(QStringLiteral("wpctl"), {QStringLiteral("set-mute"), QStringLiteral("@DEFAULT_AUDIO_SINK@"), state});
     if (!ok) ok = run(QStringLiteral("pactl"), {QStringLiteral("set-sink-mute"), QStringLiteral("@DEFAULT_SINK@"), state});
     if (!ok) { emit operationFailed(QStringLiteral("set-mute"), QStringLiteral("Neither wpctl nor pactl could change the default output mute state.")); return false; }
+    refresh(); return true;
+}
+
+bool AudioService::setInputVolume(int percent)
+{
+    percent = qBound(0, percent, 100);
+    const QString value = QString::number(percent / 100.0, 'f', 2);
+    bool ok = run(QStringLiteral("wpctl"), {QStringLiteral("set-volume"), QStringLiteral("@DEFAULT_AUDIO_SOURCE@"), value});
+    if (!ok) ok = run(QStringLiteral("pactl"), {QStringLiteral("set-source-volume"), QStringLiteral("@DEFAULT_SOURCE@"), QString::number(percent) + QStringLiteral("%")});
+    if (!ok) { emit operationFailed(QStringLiteral("set-input-volume"), QStringLiteral("Could not change the default microphone level.")); return false; }
+    refresh(); return true;
+}
+
+bool AudioService::setInputMuted(bool muted)
+{
+    const QString state = muted ? QStringLiteral("1") : QStringLiteral("0");
+    bool ok = run(QStringLiteral("wpctl"), {QStringLiteral("set-mute"), QStringLiteral("@DEFAULT_AUDIO_SOURCE@"), state});
+    if (!ok) ok = run(QStringLiteral("pactl"), {QStringLiteral("set-source-mute"), QStringLiteral("@DEFAULT_SOURCE@"), state});
+    if (!ok) { emit operationFailed(QStringLiteral("set-input-mute"), QStringLiteral("Could not change the default microphone mute state.")); return false; }
     refresh(); return true;
 }
 
