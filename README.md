@@ -28,7 +28,7 @@ This is an early persistence slice, not the complete settings system. Display br
 
 The C++ `NotificationService` owns the session notification list and exposes it to QML through the existing `Notifications` context property. It preserves the current `items`, `count`, `push(title, body)`, `clear()`, and `pushed` interfaces, so the notification centre and badge do not need a visual rewrite.
 
-The service also exports the freedesktop `org.freedesktop.Notifications` interface on the session D-Bus when it can acquire that well-known name. It supports plain-text bodies, replacement IDs, close requests, and expiry timers. Waydroid's host notification manager uses this standard interface to forward Android notifications, and native Linux applications can use it directly. Rich body markup and interactive action UI are not advertised. If another notification daemon already owns the name, Aether records `name-in-use` and does not receive desktop notifications until the conflict is resolved.
+The service also exports the freedesktop `org.freedesktop.Notifications` interface on the session D-Bus when it can acquire that well-known name. It supports plain-text bodies, replacement IDs, close requests, expiry timers, and action buttons exposed in the notification centre. Action selections are returned to the originating application through the standard D-Bus `ActionInvoked` signal. Rich body markup is not advertised. Waydroid's host notification manager uses this standard interface to forward Android notifications, and native Linux applications can use it directly. If another notification daemon already owns the name, Aether records `name-in-use` and does not receive desktop notifications until the conflict is resolved.
 
 ## Application service
 
