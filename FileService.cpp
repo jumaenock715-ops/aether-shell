@@ -44,7 +44,9 @@ void FileService::refreshVolumes()
         if (!storage.isValid() || !storage.isReady() || storage.rootPath().isEmpty()) continue;
         const QString root = QDir::cleanPath(storage.rootPath());
         // Never expose the system root or arbitrary fixed host partitions here.
-        const bool removable = storage.isRemovable() ||
+        // Qt 6.6 does not expose the kernel's removable flag through
+        // QStorageInfo. Restrict this list to conventional user mount roots.
+        const bool removable =
             root.startsWith(QStringLiteral("/media/")) ||
             root.startsWith(QStringLiteral("/run/media/")) ||
             root.startsWith(QStringLiteral("/mnt/"));
