@@ -356,14 +356,23 @@ void LinuxHardwareService::refresh()
         ? (currentBrightness * 100 / maxBrightness) : -1;
     if (m_brightness != brightness) { m_brightness = brightness; emit brightnessChanged(); }
 
-    const QString audio = commandOutput(QStringLiteral("wpctl"),
-                                        {QStringLiteral("get-volume"),
-                                         QStringLiteral("@DEFAULT_AUDIO_SINK@")});
-    static const QRegularExpression volumePattern(QStringLiteral("Volume:\\s*([0-9.]+)"));
-    const auto match = volumePattern.match(audio);
-    const int volume = match.hasMatch()
-        ? qBound(0, qRound(match.captured(1).toDouble() * 100.0), 150) : -1;
-    const bool muted = audio.contains(QStringLiteral("[MUTED]"));
+    QString audio = commandOutput(QStringLiteral("pactl"),
+        {QStringLiteral("get-sink-volume"), QStringLiteral("@DEFAULT_SINK@")});
+    static const QRegularExpression pactlVolumePattern(QStringLiteral("([0-9]{1,3})%"));
+    auto match = pactlVolumePattern.match(audio);
+    int volume = match.hasMatch() ? qBound(0, match.captured(1).toInt(), 150) : -1;
+    QString muteState = commandOutput(QStringLiteral("pactl"),
+        {QStringLiteral("get-sink-mute"), QStringLiteral("@DEFAULT_SINK@")});
+    bool muted = muteState.contains(QStringLiteral("yes"), Qt::CaseInsensitive);
+    if (volume < 0) {
+        audio = commandOutput(QStringLiteral("wpctl"),
+            {QStringLiteral("get-volume"), QStringLiteral("@DEFAULT_AUDIO_SINK@")});
+        static const QRegularExpression volumePattern(QStringLiteral("Volume:\\s*([0-9.]+)"));
+        const auto wpctlMatch = volumePattern.match(audio);
+        volume = wpctlMatch.hasMatch()
+            ? qBound(0, qRound(wpctlMatch.captured(1).toDouble() * 100.0), 150) : -1;
+        muted = audio.contains(QStringLiteral("[MUTED]"));
+    }
     if (m_volume != volume || m_muted != muted) {
         m_volume = volume; m_muted = muted; emit volumeChanged();
     }
@@ -380,7 +389,9 @@ void LinuxHardwareService::refresh()
             if (!value.isObject()) continue;
             const QJsonObject object = value.toObject();
             const QString name = object.value(QStringLiteral("name")).toString();
-            if (name.isEmpty()) continue;
+            if (name.isEmpty()
+                || (kind == QStringLiteral("sources") && name.endsWith(QStringLiteral(".monitor"))))
+                continue;
             const QString description = object.value(QStringLiteral("description")).toString(name);
             const int index = object.value(QStringLiteral("index")).toInt(-1);
             nodes.append(QVariantMap{
@@ -631,8 +642,8 @@ void LinuxHardwareService::setBrightness(int percent)
 }
 void LinuxHardwareService::setVolume(int percent)
 {
-    run(QStringLiteral("wpctl"),
-        {QStringLiteral("set-volume"), QStringLiteral("@DEFAULT_AUDIO_SINK@"),
+    run(QStringLiteral("pactl"),
+        {QStringLiteral("set-sink-volume"), QStringLiteral("@DEFAULT_SINK@"),
          QString::number(qBound(0, percent, 150)) + QLatin1Char('%')},
         QStringLiteral("Audio volume updated"));
 }
@@ -689,8 +700,8 @@ void LinuxHardwareService::setAudioInput(const QString &name)
 
 void LinuxHardwareService::setMuted(bool muted)
 {
-    run(QStringLiteral("wpctl"),
-        {QStringLiteral("set-mute"), QStringLiteral("@DEFAULT_AUDIO_SINK@"),
+    run(QStringLiteral("pactl"),
+        {QStringLiteral("set-sink-mute"), QStringLiteral("@DEFAULT_SINK@"),
          muted ? QStringLiteral("1") : QStringLiteral("0")},
         muted ? QStringLiteral("Audio muted") : QStringLiteral("Audio unmuted"));
 }
