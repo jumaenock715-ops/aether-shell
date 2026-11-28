@@ -2,6 +2,7 @@
 #include <QAbstractListModel>
 #include <QVariantMap>
 #include <QHash>
+#include <QSortFilterProxyModel>
 #include <QStringList>
 class NotificationDBusAdaptor;
 class QTimer;
@@ -9,6 +10,7 @@ class NotificationService final : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(QAbstractItemModel *items READ items CONSTANT)
+    Q_PROPERTY(QAbstractItemModel *groupedItems READ groupedItems CONSTANT)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QString dbusStatus READ dbusStatus CONSTANT)
 public:
@@ -17,6 +19,7 @@ public:
     explicit NotificationService(QObject *parent = nullptr);
     ~NotificationService() override;
     QAbstractItemModel *items();
+    QAbstractItemModel *groupedItems();
     int count() const;
     QString dbusStatus() const { return m_dbusStatus; }
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -38,6 +41,7 @@ private:
     int rowForId(uint id) const;
     uint nextNotificationId();
     QList<QVariantMap> m_notifications;
+    QSortFilterProxyModel m_groupedItems;
     uint m_nextId = 1;
     NotificationDBusAdaptor *m_dbusAdaptor = nullptr;
     QString m_dbusStatus = QStringLiteral("unavailable");
