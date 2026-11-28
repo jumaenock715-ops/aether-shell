@@ -4,6 +4,8 @@
 #include <QStringList>
 #include <QVariantList>
 
+class QProcess;
+
 class LinuxHardwareService final : public QObject
 {
     Q_OBJECT
@@ -71,6 +73,7 @@ private:
     bool m_bluetoothAvailable = false;
     bool m_bluetoothPowered = false;
     bool m_bluetoothScanning = false;
+    QProcess *m_bluetoothScanProcess = nullptr;
     QStringList m_bluetoothControllers;
     QStringList m_bluetoothDevices;
     QVariantList m_bluetoothDeviceDetails;
