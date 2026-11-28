@@ -16,6 +16,14 @@ Rectangle {
     Behavior on color { ColorAnimation { duration: Theme.animMs } }
     Behavior on height { NumberAnimation { duration: Theme.animMs; easing.type: Easing.OutCubic } }
 
+    MouseArea {
+        z: -1
+        anchors.fill: parent
+        anchors.rightMargin: root.expanded ? 54 : 0
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.clicked()
+    }
+
     Column {
         anchors.left: parent.left
         anchors.right: parent.right
@@ -50,12 +58,5 @@ Rectangle {
         color: root.on ? "#E6E0FF" : Theme.accent2
         font.pixelSize: 10
         MouseArea { anchors.fill: parent; anchors.margins: -7; cursorShape: Qt.PointingHandCursor; onClicked: root.detailsClicked() }
-    }
-    MouseArea {
-        z: -1
-        anchors.fill: parent
-        anchors.rightMargin: root.expanded ? 54 : 0
-        cursorShape: Qt.PointingHandCursor
-        onClicked: root.clicked()
     }
 }
