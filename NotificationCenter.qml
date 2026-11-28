@@ -8,20 +8,20 @@ Item {
 
     Rectangle {
         id: panel
-        width: 360
+        width: Math.min(410, root.width - 24)
         x: root.width - width - 12
         y: Theme.barHeight + 8
         height: root.height - y - 100
-        radius: 20
-        color: Theme.panel; border.color: Theme.border
+        radius: 26
+        color: Theme.launcherGlass; border.color: Theme.border
 
         MouseArea { anchors.fill: parent }
 
         Item {
             id: header
-            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 18 }
-            height: 28
-            Text { text: "Notifications"; color: Theme.text; font.pixelSize: 15; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 20 }
+            height: 34
+            Text { text: "Notifications"; color: Theme.text; font.pixelSize: 18; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
             Text {
                 text: "Clear all"; color: Theme.accent2; font.pixelSize: 12
                 anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
@@ -33,8 +33,8 @@ Item {
         ListView {
             id: list
             anchors { left: parent.left; right: parent.right; top: header.bottom; bottom: footer.top; margins: 18 }
-            anchors.topMargin: 10
-            clip: true; spacing: 10
+            anchors.topMargin: 14
+            clip: true; spacing: 12
             model: Notifications.items
             delegate: Rectangle {
                 required property string appName
@@ -45,10 +45,10 @@ Item {
                 required property var actions
                 width: list.width
                 height: card.height + 24
-                radius: 12; color: Theme.surface; border.color: Theme.border
+                radius: 18; color: Theme.surface; border.color: Theme.border
                 Column {
                     id: card
-                    anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 14 }
+                    anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 16 }
                     spacing: 3
                     Row {
                         width: parent.width
@@ -64,7 +64,7 @@ Item {
                     }
                     Row {
                         spacing: 8
-                        Text { text: title; color: Theme.text; font.pixelSize: 13; font.bold: true }
+                        Text { text: title; color: Theme.text; font.pixelSize: 14; font.bold: true }
                         Text { text: time; color: Theme.textDim; font.pixelSize: 11 }
                     }
                     Text { width: parent.width; text: body; wrapMode: Text.WordWrap; color: Theme.textDim; font.pixelSize: 12 }
@@ -75,7 +75,7 @@ Item {
                             model: actions ? Math.floor(actions.length / 2) : 0
                             delegate: Rectangle {
                                 required property int index
-                                width: actionLabel.implicitWidth + 18; height: 26; radius: 7
+                                width: actionLabel.implicitWidth + 18; height: 30; radius: 10
                                 color: Theme.panel; border.color: Theme.border
                                 Text { id: actionLabel; anchors.centerIn: parent; text: actions[index * 2 + 1]; color: Theme.accent2; font.pixelSize: 11 }
                                 MouseArea {
@@ -98,7 +98,7 @@ Item {
         Rectangle {
             id: footer
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 18 }
-            height: 38; radius: 19; color: Theme.accent
+            height: 46; radius: 23; color: Theme.accent
             Text { anchors.centerIn: parent; text: "Send test notification"; color: "white"; font.pixelSize: 13; font.bold: true }
             MouseArea {
                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
