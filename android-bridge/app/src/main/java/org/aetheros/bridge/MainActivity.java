@@ -45,10 +45,14 @@ public final class MainActivity extends Activity {
     private void writeText(String name, String value) {
         File file = bridgeFile(name);
         if (file == null) return;
-        try (FileOutputStream out = new FileOutputStream(file, false)) {
+        File temp = new File(file.getParentFile(), file.getName() + ".tmp");
+        try (FileOutputStream out = new FileOutputStream(temp, false)) {
             out.write(value.getBytes(StandardCharsets.UTF_8));
             out.flush();
-        } catch (Exception ignored) { }
+            out.getFD().sync();
+        } catch (Exception ignored) { return; }
+        if (file.exists() && !file.delete()) { temp.delete(); return; }
+        if (!temp.renameTo(file)) temp.delete();
     }
 
     private String readText(String name) {
