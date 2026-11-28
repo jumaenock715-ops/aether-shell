@@ -14,6 +14,7 @@ class NetworkService final : public QObject
     Q_PROPERTY(bool scanning READ scanning NOTIFY scanningChanged)
     Q_PROPERTY(bool connecting READ connecting NOTIFY connectingChanged)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)
+    Q_PROPERTY(QString connectionState READ connectionState NOTIFY connectionStateChanged)
     Q_PROPERTY(QString activeSsid READ activeSsid NOTIFY activeSsidChanged)
     Q_PROPERTY(QVariantList accessPoints READ accessPoints NOTIFY accessPointsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
@@ -26,6 +27,7 @@ public:
     bool scanning() const { return m_scanning; }
     bool connecting() const { return m_connecting; }
     QString status() const { return m_status; }
+    QString connectionState() const { return m_connectionState; }
     QString activeSsid() const { return m_activeSsid; }
     QVariantList accessPoints() const { return m_accessPoints; }
     QString lastError() const { return m_lastError; }
@@ -33,7 +35,9 @@ public:
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void setWifiEnabled(bool enabled);
     Q_INVOKABLE void requestScan();
-    Q_INVOKABLE void connectToNetwork(const QString &ssid, const QString &password = QString());
+    Q_INVOKABLE void connectToNetwork(const QString &ssid, const QString &password = QString(),
+                                      bool hidden = false, const QString &username = QString(),
+                                      bool enterprise = false);
     Q_INVOKABLE void disconnectFromNetwork();
 
 signals:
@@ -42,6 +46,7 @@ signals:
     void scanningChanged();
     void connectingChanged();
     void statusChanged();
+    void connectionStateChanged();
     void activeSsidChanged();
     void accessPointsChanged();
     void lastErrorChanged();
@@ -51,6 +56,7 @@ private:
     void setError(const QString &message);
     void setScanning(bool scanning);
     void setStatus(const QString &status);
+    void setConnectionState(const QString &state);
     void updateActiveConnection();
     void updateAccessPoints();
     void pollConnection();
@@ -63,6 +69,7 @@ private:
     int m_connectionPolls = 0;
     QString m_pendingSsid;
     QString m_status = QStringLiteral("Unavailable");
+    QString m_connectionState = QStringLiteral("disconnected");
     QString m_activeSsid;
     QString m_lastError;
     QVariantList m_accessPoints;
