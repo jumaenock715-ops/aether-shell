@@ -10,7 +10,7 @@ Item {
         }
     }
     property int page: 0
-    readonly property var pages: ["Appearance", "Display", "Network", "Audio", "Android", "About"]
+    readonly property var pages: ["Appearance", "Display", "Network", "Notifications", "Audio", "Android", "About"]
     readonly property var accents: ["#6D4AFF", "#14B8D4", "#3DDC97", "#FF5C7A", "#FFB020"]
 
     Rectangle {
@@ -88,9 +88,39 @@ Item {
             Text { text: "Demo toggles. Real networking arrives with the Aether system services."; color: Theme.textDim; font.pixelSize: 12 }
         }
 
+        // Notifications
+        Column {
+            visible: root.page === 3; spacing: 14; width: parent.width
+            Text { text: "Notifications"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Row {
+                spacing: 14
+                Text { text: "Do not disturb"; color: Theme.text; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                Toggle { checked: SessionSettings.doNotDisturb; onToggled: (v) => SessionSettings.setDoNotDisturb(v) }
+            }
+            Text { text: "Desktop notification service"; color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap
+                text: "D-Bus status: " + Notifications.dbusStatus
+                color: Notifications.dbusStatus === "active" ? "#3DDC97" : "#FFB020"
+                font.pixelSize: 12
+            }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap
+                text: Notifications.dbusStatus === "active"
+                    ? "Aether currently owns org.freedesktop.Notifications on the session bus."
+                    : "The D-Bus notification name could not be registered. Another notification daemon may already own it, or the session bus may be unavailable."
+                color: Theme.textDim; font.pixelSize: 11
+            }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap
+                text: "Notifications remain in the notification centre while Do Not Disturb suppresses toast popups."
+                color: Theme.textDim; font.pixelSize: 11
+            }
+        }
+
         // Audio
         Column {
-            visible: root.page === 3; spacing: 12; width: parent.width
+            visible: root.page === 4; spacing: 12; width: parent.width
             Text { text: "Audio"; color: Theme.text; font.pixelSize: 18; font.bold: true }
             Text {
                 text: Audio.available ? "Audio control service available" : "No supported audio control utility detected."
@@ -147,7 +177,7 @@ Item {
 
         // Android runtime
         Column {
-            visible: root.page === 4; spacing: 14; width: parent.width
+            visible: root.page === 5; spacing: 14; width: parent.width
             Text { text: "Android runtime"; color: Theme.text; font.pixelSize: 18; font.bold: true }
             Text {
                 width: parent.width; wrapMode: Text.WordWrap
@@ -243,7 +273,7 @@ Item {
 
         // About
         Column {
-            visible: root.page === 5; spacing: 10; width: parent.width
+            visible: root.page === 6; spacing: 10; width: parent.width
             Text { text: "About"; color: Theme.text; font.pixelSize: 18; font.bold: true }
             Text { text: "Aether Shell 0.1 (prototype)"; color: Theme.text; font.pixelSize: 14 }
             Text { text: "Qt " + Qt.platform.os + " build"; color: Theme.textDim; font.pixelSize: 12 }
