@@ -24,5 +24,6 @@ void NotificationDBusAdaptor::GetServerInformation()
     if (!calledFromDBus()) return;
     const QVariantList info{QStringLiteral("Aether OS"), QStringLiteral("Aether Project"),
                             QStringLiteral("0.1"), QStringLiteral("1.2")};
+    setDelayedReply(true);
     connection().send(message().createReply(info));
 }
