@@ -26,6 +26,10 @@ jobs:
             dbus-run-session -- env QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
             AETHER_DEMO_DIR="$PWD/shots" ./build/aether-shell > run.log 2>&1
           cat run.log
+          grep -q "AETHER_SETTINGS_WINDOW_LOADED" run.log || {
+            echo "SettingsApp did not instantiate during the settings snapshot."
+            exit 1
+          }
           for snapshot in 01-start 02-launcher 03-settings 04-windows 05-quick-settings 06-notifications 07-light-theme; do
             test -s "shots/$snapshot.png" || { echo "Missing snapshot: $snapshot.png"; exit 1; }
           done
