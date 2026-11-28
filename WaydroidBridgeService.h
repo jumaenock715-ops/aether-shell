@@ -17,6 +17,8 @@ class WaydroidBridgeService final : public QObject
     Q_PROPERTY(bool available READ available NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(int forwardedNotifications READ forwardedNotifications NOTIFY changed)
+signals:
+    void changed();
 public:
     WaydroidBridgeService(NotificationService *notifications,
                           ClipboardService *clipboard,
