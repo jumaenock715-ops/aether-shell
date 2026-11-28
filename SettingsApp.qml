@@ -205,6 +205,43 @@ Item {
                     MouseArea { anchors.fill: parent; onClicked: Audio.selectInput(modelData.name) }
                 }
             }
+            Text { text: "Application audio"; color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Repeater {
+                model: Audio.streams
+                delegate: Column {
+                    required property var modelData
+                    width: parent.width
+                    spacing: 4
+                    Text {
+                        width: parent.width
+                        text: modelData.name + " — " + modelData.provider
+                        color: Theme.text; font.pixelSize: 11
+                        elide: Text.ElideRight
+                    }
+                    Row {
+                        spacing: 8
+                        AetherSlider {
+                            width: 190
+                            value: modelData.volume / 100
+                            onMoved: (v) => Audio.setStreamVolume(modelData.id, Math.round(v * 100))
+                        }
+                        Text {
+                            text: modelData.volume + "%"
+                            color: Theme.textDim; font.pixelSize: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Toggle {
+                            checked: modelData.muted
+                            onToggled: (v) => Audio.setStreamMuted(modelData.id, v)
+                        }
+                    }
+                }
+            }
+            Text {
+                visible: Audio.streams.length === 0
+                text: "No active application audio streams."
+                color: Theme.textDim; font.pixelSize: 10
+            }
             Text { text: "Refresh devices"; color: Theme.accent2; font.pixelSize: 12 }
             MouseArea { width: 100; height: 22; onClicked: Audio.refresh() }
             Text {
