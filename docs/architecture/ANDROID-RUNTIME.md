@@ -203,3 +203,8 @@ Not implemented or not validated:
 - ARM native-library translation.
 
 The Waydroid adapter invokes CLI operations as separate QProcess arguments, never as a constructed shell command. Its `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. The Wayland tracker is optional at build time and requires `wayland-client` plus `wayland-scanner`; without them it reports `unsupported-build`. No source build, runtime, boot, or hardware test has been performed.
+
+
+## 7. Android and native desktop notifications
+
+Aether's `NotificationService` now owns the freedesktop `org.freedesktop.Notifications` session-bus name and exports `/org/freedesktop/Notifications` when that name is available. Waydroid's host-side notification manager connects to this standard interface and forwards Android notifications through it; native Linux applications use the same endpoint. Aether stores incoming notifications in its existing list model, preserving the QML notification-centre interface. The initial server supports plain-text bodies, replacement IDs, close requests, and expiry. Rich body markup and interactive action UI are not advertised. If another notification daemon already owns the bus name, Aether records `name-in-use` and cannot receive desktop notifications until that conflict is resolved. This implementation has not been compiled or runtime-tested.
