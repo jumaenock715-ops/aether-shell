@@ -670,7 +670,8 @@ void LinuxHardwareService::setBrightness(int percent)
         return;
     }
     run(QStringLiteral("brightnessctl"),
-        {QStringLiteral("set"), QString::number(qBound(0, percent, 100)) + QLatin1Char('%')},
+        {QStringLiteral("--device"), QFileInfo(dir).fileName(),
+         QStringLiteral("set"), QString::number(qBound(0, percent, 100)) + QLatin1Char('%')},
         QStringLiteral("Brightness updated"));
 }
 void LinuxHardwareService::setVolume(int percent)
