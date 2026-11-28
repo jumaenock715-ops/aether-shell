@@ -1,5 +1,9 @@
 name: Build and screenshot
 on: [push, workflow_dispatch]
+
+concurrency:
+  group: aether-desktop-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-22.04
