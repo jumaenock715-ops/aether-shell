@@ -64,16 +64,29 @@ Rectangle {
         }
 
         Row {
-            anchors.left: parent.left; anchors.leftMargin: 12
+            anchors.right: parent.right; anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 8
+            spacing: 5
             Rectangle {
-                width: 14; height: 14; radius: 7; color: "#FF5C7A"
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.closeRequested() }
+                width: 34; height: 28; radius: 7
+                color: minimizeArea.containsMouse ? Theme.border : "transparent"
+                Text { anchors.centerIn: parent; text: "—"; color: Theme.text; font.pixelSize: 13 }
+                MouseArea { id: minimizeArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.visible = false }
             }
             Rectangle {
-                width: 14; height: 14; radius: 7; color: "#3DDC97"
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.toggleMaximize() }
+                width: 34; height: 28; radius: 7
+                color: maximizeArea.containsMouse ? Theme.border : "transparent"
+                Text { anchors.centerIn: parent; text: root.maximized ? "❐" : "□"; color: Theme.text; font.pixelSize: 13 }
+                MouseArea { id: maximizeArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleMaximize() }
+            }
+            Rectangle {
+                width: 42; height: 28; radius: 7
+                color: closeArea.containsMouse ? "#C94355" : "transparent"
+                Text { anchors.centerIn: parent; text: "×"; color: closeArea.containsMouse ? "white" : Theme.text; font.pixelSize: 19 }
+                MouseArea { id: closeArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: root.closeRequested() }
             }
         }
     }
