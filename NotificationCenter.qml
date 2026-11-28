@@ -41,6 +41,8 @@ Item {
                 required property string title
                 required property string body
                 required property string time
+                required property int notificationId
+                required property var actions
                 width: list.width
                 height: card.height + 24
                 radius: 12; color: Theme.surface; border.color: Theme.border
@@ -66,6 +68,23 @@ Item {
                         Text { text: time; color: Theme.textDim; font.pixelSize: 11 }
                     }
                     Text { width: parent.width; text: body; wrapMode: Text.WordWrap; color: Theme.textDim; font.pixelSize: 12 }
+                    Row {
+                        spacing: 8
+                        visible: actions && actions.length >= 2
+                        Repeater {
+                            model: actions ? Math.floor(actions.length / 2) : 0
+                            delegate: Rectangle {
+                                required property int index
+                                width: actionLabel.implicitWidth + 18; height: 26; radius: 7
+                                color: Theme.panel; border.color: Theme.border
+                                Text { id: actionLabel; anchors.centerIn: parent; text: actions[index * 2 + 1]; color: Theme.accent2; font.pixelSize: 11 }
+                                MouseArea {
+                                    anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: Notifications.invokeAction(notificationId, actions[index * 2])
+                                }
+                            }
+                        }
+                    }
                 }
             }
             Text {
