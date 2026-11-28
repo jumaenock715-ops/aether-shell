@@ -90,6 +90,68 @@ Item {
                         }
                     }
                 }
+                Column {
+                    width: parent.width
+                    spacing: 5
+                    visible: System.hardware && System.hardware.bluetoothPairing
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        color: Theme.text
+                        font.pixelSize: 11
+                        text: "Pairing " + System.hardware.bluetoothPairingAddress
+                              + (System.hardware.bluetoothPairingPrompt === "confirm"
+                                 ? " · Confirm code " + System.hardware.bluetoothPairingPasskey
+                                 : System.hardware.bluetoothPairingPrompt === "pin"
+                                   ? " · Enter the PIN/passkey shown by the device"
+                                   : System.hardware.bluetoothPairingPrompt === "authorize"
+                                     ? " · The device requests authorization"
+                                     : " · Waiting for device confirmation…")
+                    }
+                    TextInput {
+                        id: bluetoothPin
+                        visible: System.hardware && System.hardware.bluetoothPairingPrompt === "pin"
+                        width: parent.width
+                        height: 30
+                        echoMode: TextInput.Normal
+                        placeholderText: "Bluetooth PIN / passkey"
+                        color: Theme.text
+                        leftPadding: 8
+                        verticalAlignment: TextInput.AlignVCenter
+                        Rectangle { anchors.fill: parent; z: -1; radius: 6; color: Theme.surface; border.color: Theme.border }
+                    }
+                    Row {
+                        spacing: 12
+                        visible: System.hardware && System.hardware.bluetoothPairingPrompt === "pin"
+                        Text {
+                            text: "Submit PIN"; color: Theme.accent; font.pixelSize: 11
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: if (System.hardware) {
+                                    System.hardware.respondBluetoothPairing(bluetoothPin.text);
+                                    bluetoothPin.text = "";
+                                }
+                            }
+                        }
+                    }
+                    Row {
+                        spacing: 14
+                        visible: System.hardware && (System.hardware.bluetoothPairingPrompt === "confirm"
+                                 || System.hardware.bluetoothPairingPrompt === "authorize")
+                        Text {
+                            text: "Confirm"; color: Theme.accent; font.pixelSize: 11
+                            MouseArea { anchors.fill: parent; onClicked: if (System.hardware) System.hardware.confirmBluetoothPairing(true) }
+                        }
+                        Text {
+                            text: "Reject"; color: Theme.textDim; font.pixelSize: 11
+                            MouseArea { anchors.fill: parent; onClicked: if (System.hardware) System.hardware.confirmBluetoothPairing(false) }
+                        }
+                    }
+                    Text {
+                        text: "Cancel pairing"; color: Theme.textDim; font.pixelSize: 11
+                        MouseArea { anchors.fill: parent; onClicked: if (System.hardware) System.hardware.cancelBluetoothPairing() }
+                    }
+                }
             }
 
             Row {
