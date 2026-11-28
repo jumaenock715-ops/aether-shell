@@ -7,8 +7,9 @@ QtObject {
     readonly property var network: SystemBridge.network
 
     readonly property bool wifi: network ? network.wifiEnabled : false
-    property bool bluetooth: false
+    readonly property var hardware: SystemBridge.hardware
+    readonly property bool bluetooth: hardware ? hardware.bluetoothPowered : false
     property bool dnd: false
-    property real brightness: 0.85
-    property int battery: 0
+    readonly property real brightness: hardware && hardware.brightness >= 0 ? hardware.brightness / 100 : 0
+    readonly property int battery: hardware ? hardware.batteryPercent : 0
 }
