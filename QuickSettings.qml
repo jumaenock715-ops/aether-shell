@@ -56,7 +56,8 @@ Item {
                 spacing: 5
                 Row {
                     spacing: 10
-                    Text { text: "Bluetooth devices"; color: Theme.textDim; font.pixelSize: 12 }
+                    Text { text: "Bluetooth controllers"; color: Theme.textDim; font.pixelSize: 12 }
+                    Text { text: System.hardware && System.hardware.bluetoothControllers.length ? System.hardware.bluetoothControllers.join(", ") : "None detected"; color: Theme.textDim; font.pixelSize: 10; wrapMode: Text.WordWrap; width: parent.width - 90 }
                     Text { text: "Discover"; color: Theme.accent; font.pixelSize: 12; MouseArea { anchors.fill: parent; onClicked: if (System.hardware) System.hardware.scanBluetooth() } }
                 }
                 Repeater {
@@ -179,6 +180,10 @@ Item {
                     text: System.hardware && System.hardware.batteryPresent ? "Battery: " + System.battery + "%" : "No battery detected"
                     color: Theme.textDim
                     font.pixelSize: 11
+                }
+                Repeater {
+                    model: System.hardware ? System.hardware.batteryDevices : []
+                    delegate: Text { text: modelData; color: Theme.textDim; font.pixelSize: 10 }
                 }
                 Row {
                     spacing: 12
