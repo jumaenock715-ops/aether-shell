@@ -15,20 +15,20 @@ Item {
 
     Rectangle {
         id: side
-        width: 160; height: parent.height
-        color: Theme.surface
+        width: 184; height: parent.height
+        color: Theme.panel
         Column {
-            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 10 }
-            spacing: 4
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
+            spacing: 6
             Repeater {
                 model: root.pages
                 delegate: Rectangle {
                     required property int index
                     required property string modelData
-                    width: parent.width; height: 34; radius: 8
+                    width: parent.width; height: 42; radius: 12
                     color: root.page === index ? Theme.accent : "transparent"
-                    Text { anchors.verticalCenter: parent.verticalCenter; x: 12; text: modelData
-                           color: root.page === index ? "white" : Theme.text; font.pixelSize: 13 }
+                    Text { anchors.verticalCenter: parent.verticalCenter; x: 14; text: modelData
+                           color: root.page === index ? "white" : Theme.text; font.pixelSize: 14 }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.page = index }
                 }
             }
@@ -36,12 +36,12 @@ Item {
     }
 
     Item {
-        anchors { left: side.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 24 }
+        anchors { left: side.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 28 }
 
         // Appearance
         Column {
             visible: root.page === 0; spacing: 18; width: parent.width
-            Text { text: "Appearance"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Text { text: "Appearance"; color: Theme.text; font.pixelSize: 21; font.bold: true }
             Row {
                 spacing: 16
                 Text { text: "Dark mode"; color: Theme.text; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
