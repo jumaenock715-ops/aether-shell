@@ -244,6 +244,8 @@ void LinuxHardwareService::refresh()
     QStringList batteryNames;
     double totalFull = 0.0, totalNow = 0.0, totalDesign = 0.0;
     bool comparable = !batteries.isEmpty() && batteries.first().metric != 0;
+    bool healthComparable = comparable;
+    bool allDesignKnown = true;
     bool anyCharging = false, anyDischarging = false, allFull = !batteries.isEmpty();
     bool anyNotCharging = false;
     int percentSum = 0;
@@ -252,12 +254,13 @@ void LinuxHardwareService::refresh()
             + QString::number(battery.percent) + QLatin1Char('%')
             + QStringLiteral(" · ") + battery.status);
         percentSum += battery.percent;
-        if (battery.metric != batteries.first().metric) comparable = false;
+        if (battery.metric != batteries.first().metric) { comparable = false; healthComparable = false; }
         if (battery.metric == batteries.first().metric && battery.metric != 0) {
             totalFull += battery.full;
             totalNow += battery.now;
         }
         if (battery.design > 0.0) totalDesign += battery.design;
+        else allDesignKnown = false;
         anyCharging = anyCharging || battery.status.compare(QStringLiteral("Charging"), Qt::CaseInsensitive) == 0;
         anyDischarging = anyDischarging || battery.status.compare(QStringLiteral("Discharging"), Qt::CaseInsensitive) == 0;
         anyNotCharging = anyNotCharging || battery.status.compare(QStringLiteral("Not charging"), Qt::CaseInsensitive) == 0;
@@ -274,7 +277,7 @@ void LinuxHardwareService::refresh()
         : allFull ? QStringLiteral("Full")
         : anyNotCharging ? QStringLiteral("Not charging")
         : QStringLiteral("Unknown");
-    const int health = totalDesign > 0.0 && totalFull > 0.0
+    const int health = healthComparable && allDesignKnown && totalDesign > 0.0 && totalFull > 0.0
         ? qBound(0, qRound(totalFull / totalDesign * 100.0), 100) : -1;
 
     const bool batteryChangedValue = m_batteryDevices != batteryNames
