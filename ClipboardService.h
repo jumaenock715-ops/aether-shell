@@ -7,12 +7,13 @@ class ClipboardService final : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(QString currentText READ currentText NOTIFY currentTextChanged)
-    Q_PROPERTY(int count READ rowCount NOTIFY countChanged)
+    Q_PROPERTY(int count READ count NOTIFY countChanged)
 public:
     enum Role { TextRole = Qt::UserRole + 1, TimeRole };
     Q_ENUM(Role)
     explicit ClipboardService(QObject *parent = nullptr);
     QString currentText() const;
+    int count() const { return m_history.size(); }
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
