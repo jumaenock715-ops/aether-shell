@@ -77,11 +77,6 @@ Rectangle {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.launch(modelData.appId)
                 }
-                ToolTip {
-                    visible: hover.containsMouse
-                    text: modelData.name
-                    delay: 550
-                }
             }
         }
     }
