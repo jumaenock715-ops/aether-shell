@@ -5,8 +5,8 @@ The shell is a source-level prototype. Some desktop functions now call host sess
 
 ## What works
 - Top bar with clock, status area, notification badge
-- Dock with running-app indicators and hover animation
-- Fullscreen launcher with live search; lists built-in apps plus installed Linux apps from XDG .desktop files, with theme icons (Enter launches the first match, Esc closes)
+- Centred bottom taskbar with Aether launcher, pinned applications, running indicators and hover animation
+- Centred floating application launcher with live search, app grid and theme icons; lists built-in apps plus installed Linux apps from XDG .desktop files (Enter launches the first match, Esc closes)
 - Quick settings: demonstration Wi-Fi/Bluetooth toggles, dark mode, do not disturb, shell brightness dimming, audio output/microphone controls, and recent clipboard text
 - Notification centre with toast popups and "Send test notification"
 - Floating, draggable app windows (close, maximise, double-click title bar, focus/raise)
