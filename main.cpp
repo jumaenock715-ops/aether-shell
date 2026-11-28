@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include "AppCatalog.h"
+#include "SystemBridge.h"
 
 int main(int argc, char *argv[])
 {
@@ -10,10 +11,12 @@ int main(int argc, char *argv[])
 
     AppCatalog catalog;
     catalog.reload();
+    SystemBridge systemBridge;
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("aethericon", new IconProvider);
     engine.rootContext()->setContextProperty("AppCatalog", &catalog);
+    engine.rootContext()->setContextProperty("SystemBridge", &systemBridge);
     // Non-empty only in CI: enables the automated click-through that saves screenshots.
     engine.rootContext()->setContextProperty("demoDir", QString::fromLocal8Bit(qgetenv("AETHER_DEMO_DIR")));
 
