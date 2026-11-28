@@ -219,10 +219,84 @@ void NetworkService::requestScan()
 
 void NetworkService::connectToNetwork(const QString &ssid, const QString &password)
 {
-    Q_UNUSED(password);
-    Q_UNUSED(ssid);
-    setError(QStringLiteral("Network connection setup is not implemented in this increment. Network discovery and Wi-Fi radio control are available first; secure saved-profile handling follows next."));
-    emit operationFinished(false, m_lastError);
+    if (!m_available || ssid.isEmpty()) {
+        setError(!m_available ? QStringLiteral("NetworkManager is unavailable.")
+                              : QStringLiteral("Choose a network first."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+
+    QDBusObjectPath selectedDevice;
+    QDBusObjectPath selectedAccessPoint;
+    bool secured = false;
+    const auto devices = objectPaths(kRoot, kManager, QStringLiteral("GetDevices"));
+    for (const auto &devicePath : devices) {
+        const QVariantMap device = allProperties(devicePath.path(), kDevice);
+        if (device.value(QStringLiteral("DeviceType")).toUInt() != 2) continue;
+        const auto points = objectPaths(devicePath.path(), kWireless,
+                                        QStringLiteral("GetAllAccessPoints"));
+        for (const auto &point : points) {
+            const QVariantMap ap = allProperties(point.path(), kAccessPoint);
+            if (ssidFrom(ap.value(QStringLiteral("Ssid"))) != ssid) continue;
+            selectedDevice = devicePath;
+            selectedAccessPoint = point;
+            secured = ap.value(QStringLiteral("WpaFlags")).toUInt() != 0
+                   || ap.value(QStringLiteral("RsnFlags")).toUInt() != 0;
+            break;
+        }
+        if (!selectedDevice.path().isEmpty()) break;
+    }
+
+    if (selectedDevice.path().isEmpty()) {
+        setError(QStringLiteral("That network is no longer visible. Scan and try again."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    if (secured && password.isEmpty()) {
+        setError(QStringLiteral("This network requires a password."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+
+    QVariantMap connection;
+    connection.insert(QStringLiteral("id"), QStringLiteral("Aether - ") + ssid);
+    connection.insert(QStringLiteral("type"), QStringLiteral("802-11-wireless"));
+    connection.insert(QStringLiteral("autoconnect"), true);
+
+    QVariantMap wireless;
+    wireless.insert(QStringLiteral("ssid"), ssid.toUtf8());
+    wireless.insert(QStringLiteral("mode"), QStringLiteral("infrastructure"));
+
+    QVariantMap settings;
+    settings.insert(QStringLiteral("connection"), connection);
+    settings.insert(QStringLiteral("802-11-wireless"), wireless);
+    if (secured) {
+        QVariantMap security;
+        security.insert(QStringLiteral("key-mgmt"), QStringLiteral("wpa-psk"));
+        security.insert(QStringLiteral("psk"), password);
+        settings.insert(QStringLiteral("802-11-wireless-security"), security);
+    }
+    QVariantMap ipv4;
+    ipv4.insert(QStringLiteral("method"), QStringLiteral("auto"));
+    settings.insert(QStringLiteral("ipv4"), ipv4);
+    QVariantMap ipv6;
+    ipv6.insert(QStringLiteral("method"), QStringLiteral("auto"));
+    settings.insert(QStringLiteral("ipv6"), ipv6);
+
+    QDBusInterface manager(kService, kRoot, kManager, QDBusConnection::systemBus());
+    const QDBusMessage reply = manager.callWithArgumentList(
+        QDBus::Block, QStringLiteral("AddAndActivateConnection"),
+        {QVariant::fromValue(settings), QVariant::fromValue(selectedDevice),
+         QVariant::fromValue(selectedAccessPoint)});
+    if (reply.type() == QDBusMessage::ErrorMessage) {
+        setError(reply.errorMessage());
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+
+    setError({});
+    QTimer::singleShot(1200, this, [this]() { refresh(); });
+    emit operationFinished(true, QStringLiteral("Connection requested for ") + ssid);
 }
 
 void NetworkService::disconnectFromNetwork()
