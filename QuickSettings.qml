@@ -8,45 +8,84 @@ Item {
 
     Rectangle {
         id: panel
-        width: 340; height: col.height + 36
+        width: 340; height: col.implicitHeight + 36
         x: root.width - width - 12
         y: Theme.barHeight + 8
         radius: 20
         color: Theme.panel; border.color: Theme.border
-
-        MouseArea { anchors.fill: parent }   // swallow clicks
+        MouseArea { anchors.fill: parent }
 
         Column {
             id: col
             anchors { left: parent.left; right: parent.right; top: parent.top; margins: 18 }
             spacing: 14
-
             Text { text: "Quick settings"; color: Theme.text; font.pixelSize: 15; font.bold: true }
 
             Grid {
-                columns: 2; spacing: 10
-                width: parent.width
+                columns: 2; spacing: 10; width: parent.width
                 property real cw: (width - spacing) / 2
-                QuickTile { width: parent.cw; label: "Wi-Fi";       subtitle: System.wifi ? "Connected" : "Off"; on: System.wifi;      onClicked: System.wifi = !System.wifi }
-                QuickTile { width: parent.cw; label: "Bluetooth";   subtitle: System.bluetooth ? "On" : "Off"; on: System.bluetooth; onClicked: System.bluetooth = !System.bluetooth }
-                QuickTile { width: parent.cw; label: "Dark mode";   subtitle: Theme.dark ? "On" : "Off";       on: Theme.dark;        onClicked: SessionSettings.setDarkMode(!Theme.dark) }
+                QuickTile { width: parent.cw; label: "Wi-Fi"; subtitle: System.wifi ? "Connected" : "Off"; on: System.wifi; onClicked: System.wifi = !System.wifi }
+                QuickTile { width: parent.cw; label: "Bluetooth"; subtitle: System.bluetooth ? "On" : "Off"; on: System.bluetooth; onClicked: System.bluetooth = !System.bluetooth }
+                QuickTile { width: parent.cw; label: "Dark mode"; subtitle: Theme.dark ? "On" : "Off"; on: Theme.dark; onClicked: SessionSettings.setDarkMode(!Theme.dark) }
                 QuickTile { width: parent.cw; label: "Do not disturb"; subtitle: SessionSettings.doNotDisturb ? "On" : "Off"; on: SessionSettings.doNotDisturb; onClicked: SessionSettings.setDoNotDisturb(!SessionSettings.doNotDisturb) }
             }
 
             Column {
                 width: parent.width; spacing: 6
-                Text { text: "Display brightness"; color: Theme.textDim; font.pixelSize: 12 }
-                AetherSlider {
+                Text { text: "Display brightness (shell dimming)"; color: Theme.textDim; font.pixelSize: 12 }
+                AetherSlider { width: parent.width; value: System.brightness; onMoved: (v) => System.brightness = v }
+            }
+
+            Column {
+                width: parent.width; spacing: 6
+                Row {
                     width: parent.width
-                    value: System.brightness
-                    onMoved: (v) => System.brightness = v
+                    Text { text: "Output volume"; color: Theme.textDim; font.pixelSize: 12 }
+                    Item { width: 1; height: 1 }
+                    Text { text: Audio.muted ? "Muted" : Audio.volume + "%"; color: Theme.textDim; font.pixelSize: 11 }
                 }
+                AetherSlider { width: parent.width; value: Audio.volume / 100; onMoved: (v) => Audio.setVolume(Math.round(v * 100)) }
+                Row {
+                    spacing: 12
+                    Text { text: Audio.muted ? "Unmute" : "Mute"; color: Theme.accent2; font.pixelSize: 12 }
+                    MouseArea { width: 48; height: 22; anchors.verticalCenter: parent.verticalCenter; onClicked: Audio.setMuted(!Audio.muted) }
+                    Text { text: "Refresh"; color: Theme.accent2; font.pixelSize: 12 }
+                    MouseArea { width: 48; height: 22; anchors.verticalCenter: parent.verticalCenter; onClicked: Audio.refresh() }
+                }
+            }
+
+            Column {
+                width: parent.width; spacing: 5
+                Row {
+                    width: parent.width; spacing: 8
+                    Text { text: "Clipboard history"; color: Theme.textDim; font.pixelSize: 12 }
+                    Text { text: "Clear"; color: Theme.accent2; font.pixelSize: 11 }
+                    MouseArea { width: 34; height: 18; anchors.verticalCenter: parent.verticalCenter; onClicked: Clipboard.clearHistory() }
+                }
+                ListView {
+                    width: parent.width; height: Math.min(78, contentHeight)
+                    clip: true; spacing: 3; model: Clipboard
+                    delegate: Rectangle {
+                        id: clipboardEntry
+                        required property string text
+                        required property int index
+                        width: ListView.view.width; height: 24; radius: 6; color: Theme.surface
+                        Text {
+                            anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
+                            verticalAlignment: Text.AlignVCenter
+                            text: clipboardEntry.text; color: Theme.text; font.pixelSize: 10
+                            elide: Text.ElideRight
+                        }
+                        MouseArea { anchors.fill: parent; onClicked: Clipboard.restore(clipboardEntry.index) }
+                    }
+                }
+                Text { visible: Clipboard.count === 0; text: "No copied text yet"; color: Theme.textDim; font.pixelSize: 10 }
             }
 
             Text {
                 width: parent.width; wrapMode: Text.WordWrap
-                text: "Interface demonstration. Controls are not yet connected to hardware services."
-                color: Theme.textDim; font.pixelSize: 11
+                text: "Wi-Fi, Bluetooth and brightness are still demonstration controls. Audio and clipboard use session services."
+                color: Theme.textDim; font.pixelSize: 10
             }
         }
     }
