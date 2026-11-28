@@ -29,6 +29,10 @@ class LinuxHardwareService final : public QObject
     Q_PROPERTY(int brightness READ brightness NOTIFY brightnessChanged)
     Q_PROPERTY(int volume READ volume NOTIFY volumeChanged)
     Q_PROPERTY(bool muted READ muted NOTIFY volumeChanged)
+    Q_PROPERTY(QVariantList audioOutputs READ audioOutputs NOTIFY audioDevicesChanged)
+    Q_PROPERTY(QVariantList audioInputs READ audioInputs NOTIFY audioDevicesChanged)
+    Q_PROPERTY(QString audioOutput READ audioOutput NOTIFY audioDevicesChanged)
+    Q_PROPERTY(QString audioInput READ audioInput NOTIFY audioDevicesChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
 
 public:
@@ -51,6 +55,10 @@ public:
     int brightness() const { return m_brightness; }
     int volume() const { return m_volume; }
     bool muted() const { return m_muted; }
+    QVariantList audioOutputs() const { return m_audioOutputs; }
+    QVariantList audioInputs() const { return m_audioInputs; }
+    QString audioOutput() const { return m_audioOutput; }
+    QString audioInput() const { return m_audioInput; }
     QString lastError() const { return m_lastError; }
 
     Q_INVOKABLE void refresh();
@@ -67,6 +75,8 @@ public:
     Q_INVOKABLE void setBrightness(int percent);
     Q_INVOKABLE void setVolume(int percent);
     Q_INVOKABLE void setMuted(bool muted);
+    Q_INVOKABLE void setAudioOutput(const QString &name);
+    Q_INVOKABLE void setAudioInput(const QString &name);
     Q_INVOKABLE void suspend();
     Q_INVOKABLE void restart();
     Q_INVOKABLE void shutdown();
@@ -79,6 +89,7 @@ signals:
     void batteryChanged();
     void brightnessChanged();
     void volumeChanged();
+    void audioDevicesChanged();
     void lastErrorChanged();
     void operationFinished(bool success, const QString &message);
 
@@ -114,5 +125,9 @@ private:
     int m_brightness = -1;
     int m_volume = -1;
     bool m_muted = false;
+    QVariantList m_audioOutputs;
+    QVariantList m_audioInputs;
+    QString m_audioOutput;
+    QString m_audioInput;
     QString m_lastError;
 };
