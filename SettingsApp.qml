@@ -3,6 +3,8 @@ import QtQuick
 Item {
     id: root
 
+    Component.onCompleted: console.log("AETHER_SETTINGS_WINDOW_LOADED")
+
     Connections {
         target: AndroidRuntime
         function onOperationFailed(operation, reason) {
