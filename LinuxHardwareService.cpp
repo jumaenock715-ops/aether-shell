@@ -8,6 +8,9 @@
 #include <QTextStream>
 #include <QTimer>
 #include <QVariantMap>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <algorithm>
 
 namespace {
@@ -364,6 +367,45 @@ void LinuxHardwareService::refresh()
     if (m_volume != volume || m_muted != muted) {
         m_volume = volume; m_muted = muted; emit volumeChanged();
     }
+
+    // PipeWire's PulseAudio compatibility layer exposes USB, analogue and
+    // BlueZ Bluetooth sinks/sources through pactl, without device-specific code.
+    const auto readAudioNodes = [](const QString &kind) {
+        QVariantList nodes;
+        const QString json = commandOutput(QStringLiteral("pactl"),
+            {QStringLiteral("-f"), QStringLiteral("json"), QStringLiteral("list"), kind});
+        const QJsonDocument document = QJsonDocument::fromJson(json.toUtf8());
+        if (!document.isArray()) return nodes;
+        for (const QJsonValue &value : document.array()) {
+            if (!value.isObject()) continue;
+            const QJsonObject object = value.toObject();
+            const QString name = object.value(QStringLiteral("name")).toString();
+            if (name.isEmpty()) continue;
+            const QString description = object.value(QStringLiteral("description")).toString(name);
+            const int index = object.value(QStringLiteral("index")).toInt(-1);
+            nodes.append(QVariantMap{
+                {QStringLiteral("name"), name},
+                {QStringLiteral("description"), description},
+                {QStringLiteral("index"), index},
+                {QStringLiteral("state"), object.value(QStringLiteral("state")).toString()}
+            });
+        }
+        return nodes;
+    };
+    const QVariantList outputs = readAudioNodes(QStringLiteral("sinks"));
+    const QVariantList inputs = readAudioNodes(QStringLiteral("sources"));
+    const QString defaultOutput = commandOutput(QStringLiteral("pactl"),
+        {QStringLiteral("get-default-sink")});
+    const QString defaultInput = commandOutput(QStringLiteral("pactl"),
+        {QStringLiteral("get-default-source")});
+    if (m_audioOutputs != outputs || m_audioInputs != inputs
+        || m_audioOutput != defaultOutput || m_audioInput != defaultInput) {
+        m_audioOutputs = outputs;
+        m_audioInputs = inputs;
+        m_audioOutput = defaultOutput;
+        m_audioInput = defaultInput;
+        emit audioDevicesChanged();
+    }
 }
 
 void LinuxHardwareService::setBluetoothPowered(bool enabled)
@@ -594,6 +636,57 @@ void LinuxHardwareService::setVolume(int percent)
          QString::number(qBound(0, percent, 150)) + QLatin1Char('%')},
         QStringLiteral("Audio volume updated"));
 }
+void LinuxHardwareService::setAudioOutput(const QString &name)
+{
+    if (name.trimmed().isEmpty()) {
+        setError(QStringLiteral("Select a valid audio output device."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    bool found = false;
+    for (const QVariant &item : m_audioOutputs) {
+        if (item.toMap().value(QStringLiteral("name")).toString() == name) {
+            found = true; break;
+        }
+    }
+    if (!found) {
+        refresh();
+        for (const QVariant &item : m_audioOutputs)
+            if (item.toMap().value(QStringLiteral("name")).toString() == name) found = true;
+    }
+    if (!found) {
+        setError(QStringLiteral("That audio output is no longer available."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    run(QStringLiteral("pactl"), {QStringLiteral("set-default-sink"), name},
+        QStringLiteral("Audio output changed"));
+}
+
+void LinuxHardwareService::setAudioInput(const QString &name)
+{
+    if (name.trimmed().isEmpty()) {
+        setError(QStringLiteral("Select a valid audio input device."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    bool found = false;
+    for (const QVariant &item : m_audioInputs)
+        if (item.toMap().value(QStringLiteral("name")).toString() == name) found = true;
+    if (!found) {
+        refresh();
+        for (const QVariant &item : m_audioInputs)
+            if (item.toMap().value(QStringLiteral("name")).toString() == name) found = true;
+    }
+    if (!found) {
+        setError(QStringLiteral("That audio input is no longer available."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    run(QStringLiteral("pactl"), {QStringLiteral("set-default-source"), name},
+        QStringLiteral("Audio input changed"));
+}
+
 void LinuxHardwareService::setMuted(bool muted)
 {
     run(QStringLiteral("wpctl"),
