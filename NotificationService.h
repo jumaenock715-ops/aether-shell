@@ -2,6 +2,7 @@
 #include <QAbstractListModel>
 #include <QVariantMap>
 #include <QHash>
+#include <QStringList>
 class NotificationDBusAdaptor;
 class QTimer;
 class NotificationService final : public QAbstractListModel
