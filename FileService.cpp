@@ -144,10 +144,13 @@ bool FileService::renameEntry(const QString &oldName, const QString &newName)
         oldName == QStringLiteral("..") || newName == QStringLiteral("..")) {
         emit operationFailed(QStringLiteral("rename"), QStringLiteral("Enter valid names.")); return false;
     }
-    const QString source = QDir(m_currentPath).absoluteFilePath(oldName);
+    const QString source = QFileInfo(QDir(m_currentPath).absoluteFilePath(oldName)).canonicalFilePath();
     const QString target = QDir(m_currentPath).absoluteFilePath(newName);
-    if (!isAllowedPath(source) || !isAllowedPath(m_currentPath) ||
-        !isAllowedPath(target) || QFileInfo::exists(target) || !QFile::rename(source, target)) {
+    const QString canonicalParent = QFileInfo(m_currentPath).canonicalFilePath();
+    if (source.isEmpty() || !isAllowedPath(source) || canonicalParent.isEmpty() ||
+        !isAllowedPath(canonicalParent) ||
+        QFileInfo(target).absolutePath() != canonicalParent ||
+        QFileInfo::exists(target) || !QFile::rename(source, target)) {
         emit operationFailed(QStringLiteral("rename"), QStringLiteral("The item could not be renamed.")); return false;
     }
     refresh(); return true;
