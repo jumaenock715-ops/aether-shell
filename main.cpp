@@ -5,6 +5,7 @@
 #include "NotificationService.h"
 #include "AudioService.h"
 #include "ClipboardService.h"
+#include "WaydroidBridgeService.h"
 #include "FileService.h"
 #include "SessionManager.h"
 #include "AndroidSessionManager.h"
@@ -27,6 +28,7 @@ int main(int argc, char *argv[])
     AudioService audioService;
     ClipboardService clipboardService;
     FileService fileService;
+    WaydroidBridgeService androidBridgeService(&notificationService, &clipboardService);
     QObject::connect(&audioService, &AudioService::operationFailed, &notificationService,
                      [&notificationService](const QString &op, const QString &reason) {
         Q_UNUSED(op); notificationService.push(QStringLiteral("Audio"), reason);
@@ -53,6 +55,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("Notifications", &notificationService);
     engine.rootContext()->setContextProperty("Audio", &audioService);
     engine.rootContext()->setContextProperty("Clipboard", &clipboardService);
+    engine.rootContext()->setContextProperty("AndroidBridge", &androidBridgeService);
     engine.rootContext()->setContextProperty("FileService", &fileService);
     engine.rootContext()->setContextProperty("SessionManager", &sessionManager);
     engine.rootContext()->setContextProperty("SessionSettings", &sessionSettings);
