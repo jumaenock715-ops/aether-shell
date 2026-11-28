@@ -17,25 +17,52 @@ NotificationService::NotificationService(QObject *parent) : QAbstractListModel(p
     m_dbusAdaptor = new NotificationDBusAdaptor(this);
     connect(this, &NotificationService::notificationClosed, m_dbusAdaptor, &NotificationDBusAdaptor::NotificationClosed);
     connect(this, &NotificationService::actionInvoked, m_dbusAdaptor, &NotificationDBusAdaptor::ActionInvoked);
+    m_serviceWatcher = new QDBusServiceWatcher(
+        kNotificationService, QDBusConnection::sessionBus(),
+        QDBusServiceWatcher::WatchForOwnerChange, this);
+    connect(m_serviceWatcher, &QDBusServiceWatcher::serviceOwnerChanged,
+            this, [this](const QString &, const QString &, const QString &newOwner) {
+        if (newOwner.isEmpty()) {
+            // Do not silently leave Aether without notifications when another
+            // desktop daemon exits after the shell has started.
+            registerNotificationEndpoint();
+        } else if (!m_dbusRegistered) {
+            setDbusStatus(QStringLiteral("name-in-use"));
+        }
+    });
+    registerNotificationEndpoint();
+}
+void NotificationService::setDbusStatus(const QString &status)
+{
+    if (m_dbusStatus == status) return;
+    m_dbusStatus = status;
+    emit dbusStatusChanged();
+}
+
+void NotificationService::registerNotificationEndpoint()
+{
+    if (m_dbusRegistered) return;
     QDBusConnection bus = QDBusConnection::sessionBus();
     if (!bus.isConnected()) {
-        m_dbusStatus = QStringLiteral("session-bus-unavailable");
-        qWarning() << "Aether notifications: session D-Bus is unavailable";
+        setDbusStatus(QStringLiteral("session-bus-unavailable"));
         return;
     }
     if (!bus.registerService(kNotificationService)) {
-        m_dbusStatus = QStringLiteral("name-in-use");
-        qWarning() << "Aether notifications could not own" << kNotificationService << ":" << bus.lastError().message();
+        setDbusStatus(QStringLiteral("name-in-use"));
+        qWarning() << "Aether notifications could not own" << kNotificationService
+                   << ":" << bus.lastError().message();
         return;
     }
     if (!bus.registerObject(kNotificationPath, this, QDBusConnection::ExportAdaptors)) {
         bus.unregisterService(kNotificationService);
-        m_dbusStatus = QStringLiteral("object-registration-failed");
-        qWarning() << "Aether notifications could not register" << kNotificationPath << ":" << bus.lastError().message();
+        setDbusStatus(QStringLiteral("object-registration-failed"));
+        qWarning() << "Aether notifications could not register" << kNotificationPath
+                   << ":" << bus.lastError().message();
         return;
     }
     m_dbusRegistered = true;
-    m_dbusStatus = QStringLiteral("active");
+    setDbusStatus(QStringLiteral("active"));
+    qInfo() << "Aether owns" << kNotificationService;
 }
 NotificationService::~NotificationService()
 {
