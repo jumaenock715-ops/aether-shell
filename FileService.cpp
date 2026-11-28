@@ -44,7 +44,11 @@ void FileService::refreshVolumes()
         if (!storage.isValid() || !storage.isReady() || storage.rootPath().isEmpty()) continue;
         const QString root = QDir::cleanPath(storage.rootPath());
         // Never expose the system root or arbitrary fixed host partitions here.
-        if (!storage.isRemovable() || root == QStringLiteral("/")) continue;
+        const bool removable = storage.isRemovable() ||
+            root.startsWith(QStringLiteral("/media/")) ||
+            root.startsWith(QStringLiteral("/run/media/")) ||
+            root.startsWith(QStringLiteral("/mnt/"));
+        if (!removable || root == QStringLiteral("/")) continue;
         roots.append(root);
         next.append(QVariantMap{
             {QStringLiteral("name"), storage.name().isEmpty() ? root : storage.name()},
