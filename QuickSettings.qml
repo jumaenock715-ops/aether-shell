@@ -123,6 +123,13 @@ Item {
                 }
             }
 
+            Connections {
+                target: System.network
+                function onOperationFinished(success, message) {
+                    if (success) wifiPassword.text = ""
+                }
+            }
+
             Column {
                 width: parent.width
                 spacing: 6
