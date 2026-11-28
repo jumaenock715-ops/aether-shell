@@ -52,6 +52,7 @@ Rectangle {
         MouseArea { anchors.fill: parent; anchors.margins: -7; cursorShape: Qt.PointingHandCursor; onClicked: root.detailsClicked() }
     }
     MouseArea {
+        z: -1
         anchors.fill: parent
         anchors.rightMargin: root.expanded ? 54 : 0
         cursorShape: Qt.PointingHandCursor
