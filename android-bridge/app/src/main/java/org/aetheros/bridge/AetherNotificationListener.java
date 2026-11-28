@@ -36,6 +36,22 @@ public final class AetherNotificationListener extends NotificationListenerServic
     }
 
     @Override
+    public void onListenerConnected() {
+        File file = eventFile();
+        if (file == null) return;
+        synchronized (lock) {
+            try (FileOutputStream out = new FileOutputStream(file, false)) {
+                out.flush();
+            } catch (Exception ignored) { return; }
+        }
+        StatusBarNotification[] active = getActiveNotifications();
+        if (active != null) {
+            for (StatusBarNotification sbn : active)
+                onNotificationPosted(sbn);
+        }
+    }
+
+    @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         if (sbn == null || getPackageName().equals(sbn.getPackageName())) return;
         Notification notification = sbn.getNotification();
