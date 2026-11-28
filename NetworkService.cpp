@@ -20,7 +20,7 @@ const QString kDevice = QStringLiteral("org.freedesktop.NetworkManager.Device");
 const QString kWireless = QStringLiteral("org.freedesktop.NetworkManager.Device.Wireless");
 const QString kAccessPoint = QStringLiteral("org.freedesktop.NetworkManager.AccessPoint");
 
-QVariant property(const QString &path, const QString &interfaceName, const QString &name)
+QVariant readDbusProperty(const QString &path, const QString &interfaceName, const QString &name)
 {
     QDBusInterface iface(kService, path, kProperties, QDBusConnection::systemBus());
     const QDBusReply<QDBusVariant> reply =
@@ -99,7 +99,7 @@ void NetworkService::refresh()
     }
 
     setError(QString());
-    const bool enabled = property(kRoot, kManager, QStringLiteral("WirelessEnabled")).toBool();
+    const bool enabled = readDbusProperty(kRoot, kManager, QStringLiteral("WirelessEnabled")).toBool();
     if (m_wifiEnabled != enabled) { m_wifiEnabled = enabled; emit wifiEnabledChanged(); }
 
     updateAccessPoints();
@@ -114,7 +114,7 @@ void NetworkService::updateActiveConnection()
     for (const auto &devicePath : devices) {
         const QVariantMap device = allProperties(devicePath.path(), kDevice);
         if (device.value(QStringLiteral("DeviceType")).toUInt() != 2) continue;
-        const QString apPath = property(devicePath.path(), kWireless,
+        const QString apPath = readDbusProperty(devicePath.path(), kWireless,
                                         QStringLiteral("ActiveAccessPoint")).value<QDBusObjectPath>().path();
         if (apPath.isEmpty() || apPath == QStringLiteral("/")) continue;
         activeSsid = ssidFrom(allProperties(apPath, kAccessPoint).value(QStringLiteral("Ssid")));
