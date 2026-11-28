@@ -10,6 +10,7 @@
 #include <QDBusServiceWatcher>
 #include <QTimer>
 #include <QDBusError>
+#include <QStringList>
 #include <algorithm>
 
 namespace {
