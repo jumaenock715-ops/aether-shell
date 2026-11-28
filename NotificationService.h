@@ -12,7 +12,7 @@ class NotificationService final : public QAbstractListModel
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(QString dbusStatus READ dbusStatus CONSTANT)
 public:
-    enum Role { IdRole = Qt::UserRole + 1, AppNameRole, AppIconRole, TitleRole, BodyRole, TimeRole };
+    enum Role { IdRole = Qt::UserRole + 1, AppNameRole, AppIconRole, TitleRole, BodyRole, TimeRole, ActionsRole };
     Q_ENUM(Role)
     explicit NotificationService(QObject *parent = nullptr);
     ~NotificationService() override;
@@ -28,7 +28,7 @@ public:
     uint postDesktopNotification(const QString &appName, uint replacesId,
         const QString &appIcon, const QString &summary, const QString &body,
         const QStringList &actions, const QVariantMap &hints, int expireTimeout);
-    bool closeNotification(uint id, uint reason = 3);
+    Q_INVOKABLE bool closeNotification(uint id, uint reason = 3);
 signals:
     void countChanged();
     void pushed(const QString &title, const QString &body);
