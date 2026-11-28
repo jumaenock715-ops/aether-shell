@@ -2,15 +2,10 @@
 
 #include <QObject>
 #include <QString>
-#include <QStringList>
 #include <QVariantList>
-#include <QVariantMap>
 
-class QDBusInterface;
 class QDBusServiceWatcher;
 
-// NetworkManager-backed Wi-Fi service. This class deliberately uses the
-// public NetworkManager D-Bus API rather than shelling out to nmcli.
 class NetworkService final : public QObject
 {
     Q_OBJECT
@@ -36,8 +31,7 @@ public:
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void setWifiEnabled(bool enabled);
     Q_INVOKABLE void requestScan();
-    Q_INVOKABLE void connectToNetwork(const QString &ssid,
-                                      const QString &password = QString());
+    Q_INVOKABLE void connectToNetwork(const QString &ssid, const QString &password = QString());
     Q_INVOKABLE void disconnectFromNetwork();
 
 signals:
@@ -54,10 +48,8 @@ private:
     void setError(const QString &message);
     void setScanning(bool scanning);
     void setStatus(const QString &status);
-    void updateWifiEnabled();
     void updateActiveConnection();
     void updateAccessPoints();
-    void activateAccessPoint(const QString &path, const QString &password);
 
     bool m_available = false;
     bool m_wifiEnabled = false;
