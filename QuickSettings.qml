@@ -46,11 +46,23 @@ Item {
                 }
                 AetherSlider { width: parent.width; value: Audio.volume / 100; onMoved: (v) => Audio.setVolume(Math.round(v * 100)) }
                 Row {
-                    spacing: 12
-                    Text { text: Audio.muted ? "Unmute" : "Mute"; color: Theme.accent2; font.pixelSize: 12 }
-                    MouseArea { width: 48; height: 22; anchors.verticalCenter: parent.verticalCenter; onClicked: Audio.setMuted(!Audio.muted) }
-                    Text { text: "Refresh"; color: Theme.accent2; font.pixelSize: 12 }
-                    MouseArea { width: 48; height: 22; anchors.verticalCenter: parent.verticalCenter; onClicked: Audio.refresh() }
+                    spacing: 14
+                    Text {
+                        text: Audio.muted ? "Unmute output" : "Mute output"
+                        color: Theme.accent2; font.pixelSize: 12
+                        MouseArea { anchors.fill: parent; onClicked: Audio.setMuted(!Audio.muted) }
+                    }
+                    Text {
+                        text: "Refresh devices"; color: Theme.accent2; font.pixelSize: 12
+                        MouseArea { anchors.fill: parent; onClicked: Audio.refresh() }
+                    }
+                }
+                Text { text: "Microphone " + Audio.inputVolume + (Audio.inputMuted ? "% (muted)" : "%"); color: Theme.textDim; font.pixelSize: 11 }
+                AetherSlider { width: parent.width; value: Audio.inputVolume / 100; onMoved: (v) => Audio.setInputVolume(Math.round(v * 100)) }
+                Text {
+                    text: Audio.inputMuted ? "Unmute microphone" : "Mute microphone"
+                    color: Theme.accent2; font.pixelSize: 12
+                    MouseArea { anchors.fill: parent; onClicked: Audio.setInputMuted(!Audio.inputMuted) }
                 }
             }
 
