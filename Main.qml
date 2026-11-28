@@ -30,6 +30,11 @@ Window {
     }
 
     function launchApp(app) {
+        const appName = (app.name || "").toLowerCase()
+        if (app.appId === "settings" || appName === "settings" || appName === "system settings") {
+            openApp("settings")
+            return
+        }
         if (app.kind === "system" || app.kind === "android") {
             closePopups()
             if (AppCatalog.launch(app.appId))
