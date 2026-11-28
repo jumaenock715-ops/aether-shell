@@ -9,6 +9,7 @@ class LinuxHardwareService final : public QObject
     Q_OBJECT
     Q_PROPERTY(bool bluetoothAvailable READ bluetoothAvailable NOTIFY bluetoothChanged)
     Q_PROPERTY(bool bluetoothPowered READ bluetoothPowered NOTIFY bluetoothChanged)
+    Q_PROPERTY(bool bluetoothScanning READ bluetoothScanning NOTIFY bluetoothScanningChanged)
     Q_PROPERTY(QStringList bluetoothControllers READ bluetoothControllers NOTIFY bluetoothDevicesChanged)
     Q_PROPERTY(QStringList bluetoothDevices READ bluetoothDevices NOTIFY bluetoothDevicesChanged)
     Q_PROPERTY(QVariantList bluetoothDeviceDetails READ bluetoothDeviceDetails NOTIFY bluetoothDevicesChanged)
@@ -24,6 +25,7 @@ public:
     explicit LinuxHardwareService(QObject *parent = nullptr);
     bool bluetoothAvailable() const { return m_bluetoothAvailable; }
     bool bluetoothPowered() const { return m_bluetoothPowered; }
+    bool bluetoothScanning() const { return m_bluetoothScanning; }
     QStringList bluetoothControllers() const { return m_bluetoothControllers; }
     QStringList bluetoothDevices() const { return m_bluetoothDevices; }
     QVariantList bluetoothDeviceDetails() const { return m_bluetoothDeviceDetails; }
@@ -41,6 +43,7 @@ public:
     Q_INVOKABLE void pairBluetooth(const QString &address);
     Q_INVOKABLE void connectBluetooth(const QString &address);
     Q_INVOKABLE void disconnectBluetooth(const QString &address);
+    Q_INVOKABLE void trustBluetooth(const QString &address, bool trusted = true);
     Q_INVOKABLE void removeBluetooth(const QString &address);
     Q_INVOKABLE void setBrightness(int percent);
     Q_INVOKABLE void setVolume(int percent);
@@ -52,6 +55,7 @@ public:
 signals:
     void bluetoothChanged();
     void bluetoothDevicesChanged();
+    void bluetoothScanningChanged();
     void batteryChanged();
     void brightnessChanged();
     void volumeChanged();
@@ -60,10 +64,13 @@ signals:
 
 private:
     bool run(const QString &program, const QStringList &arguments,
-             const QString &successMessage);
+             const QString &successMessage, int timeoutMs = 8000);
+    bool validBluetoothAddress(const QString &address) const;
+    void setBluetoothScanning(bool scanning);
     void setError(const QString &message);
     bool m_bluetoothAvailable = false;
     bool m_bluetoothPowered = false;
+    bool m_bluetoothScanning = false;
     QStringList m_bluetoothControllers;
     QStringList m_bluetoothDevices;
     QVariantList m_bluetoothDeviceDetails;
