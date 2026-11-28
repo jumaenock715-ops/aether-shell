@@ -320,13 +320,13 @@ Item {
                         width: parent.width
                         text: (modelData.description || modelData.name)
                               + (System.hardware.audioOutputPort === modelData.name ? " · Active" : "")
-                              + (modelData.available === "no" ? " · Unplugged" : "")
+                              + (modelData.available === "not available" ? " · Unplugged" : "")
                         color: System.hardware.audioOutputPort === modelData.name ? Theme.accent : Theme.text
                         font.pixelSize: 11
                         elide: Text.ElideRight
                         MouseArea {
                             anchors.fill: parent
-                            enabled: modelData.available !== "no"
+                            enabled: modelData.available !== "not available"
                             onClicked: if (System.hardware) System.hardware.setAudioOutputPort(modelData.name)
                         }
                     }
