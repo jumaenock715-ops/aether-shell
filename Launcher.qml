@@ -25,7 +25,7 @@ Item {
         width: Math.min(720, root.width - 40)
         height: Math.min(590, root.height - 100)
         radius: 28
-        color: Theme.launcherPanel
+        color: Theme.launcherGlass
         border.color: Theme.border
         border.width: 1
 
