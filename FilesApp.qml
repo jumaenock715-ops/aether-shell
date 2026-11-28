@@ -125,6 +125,7 @@ Item {
                 width: entries.width; height: 44; radius: 7
                 color: itemArea.containsMouse ? Theme.surface : "transparent"
                 Row {
+                    z: 1
                     anchors.fill: parent; anchors.leftMargin: 9; anchors.rightMargin: 9
                     spacing: 10
                     Text {
@@ -141,13 +142,25 @@ Item {
                         Text { width: parent.width; text: isDirectory ? "Folder" : size + " bytes"; color: Theme.textDim; font.pixelSize: 10 }
                     }
                     Text {
-                        width: 80; height: parent.height
+                        width: 62; height: parent.height
                         text: modified; color: Theme.textDim; font.pixelSize: 9
                         verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignRight
+                    }
+                    Text {
+                        text: "Rename"; color: Theme.accent2; font.pixelSize: 9
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: { root.renameOldName = name; renameInput.text = name }
+                        }
+                    }
+                    Text {
+                        text: "Trash"; color: "#FF5C7A"; font.pixelSize: 9
+                        MouseArea { anchors.fill: parent; onClicked: FileService.trashEntry(path) }
                     }
                 }
                 MouseArea {
                     id: itemArea
+                    z: 0
                     anchors.fill: parent; hoverEnabled: true
                     onDoubleClicked: {
                         if (isDirectory) FileService.openDirectory(path)
