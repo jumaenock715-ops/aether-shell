@@ -81,9 +81,10 @@ Rectangle {
     // Content
     Loader {
         anchors { left: parent.left; right: parent.right; top: bar.bottom; bottom: parent.bottom }
-        sourceComponent: root.appId === "settings" ? settingsComp : placeholderComp
+        sourceComponent: root.appId === "settings" ? settingsComp : (root.appId === "files" ? filesComp : placeholderComp)
     }
     Component { id: settingsComp;    SettingsApp {} }
+    Component { id: filesComp; FilesApp {} }
     Component {
         id: placeholderComp
         PlaceholderApp {
