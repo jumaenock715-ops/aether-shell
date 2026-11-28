@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
+#include <QTemporaryFile>
 
 namespace {
 const QString kBridgeRelative = QStringLiteral("Android/data/org.aetheros.bridge/files");
@@ -49,6 +50,13 @@ void WaydroidBridgeService::discoverBridgeDirectory()
     for (const QString &root : roots) {
         const QString candidate = QDir(root).filePath(kBridgeRelative);
         if (QFileInfo(candidate).isDir() && QFileInfo(candidate).isReadable()) {
+            QTemporaryFile permissionProbe(QDir(candidate).filePath(QStringLiteral(".aether-probe-XXXXXX")));
+            if (!permissionProbe.open()) {
+                setStatus(QStringLiteral("storage-permission-denied"));
+                continue;
+            }
+            permissionProbe.close();
+            permissionProbe.remove();
             if (m_bridgeDirectory != candidate) {
                 m_bridgeDirectory = candidate;
                 m_notificationOffset = 0;
@@ -60,7 +68,8 @@ void WaydroidBridgeService::discoverBridgeDirectory()
         }
     }
     m_bridgeDirectory.clear();
-    setStatus(QStringLiteral("waiting-for-android-companion"));
+    if (m_status != QStringLiteral("storage-permission-denied"))
+        setStatus(QStringLiteral("waiting-for-android-companion"));
 }
 
 void WaydroidBridgeService::poll()
