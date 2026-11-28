@@ -293,8 +293,10 @@ Item {
             Text {
                 width: parent.width; wrapMode: Text.WordWrap
                 text: AndroidBridge.available
-                    ? "The companion bridge folder is detected. Android notifications are forwarded when notification access is granted in Aether Bridge. Text clipboard sync works while the companion activity is open."
-                    : "Install the Aether Bridge companion APK in Waydroid, launch it, and grant notification access. Clipboard synchronisation is foreground-only because Android restricts background clipboard access."
+                    ? "The companion bridge folder is accessible. Android notifications are forwarded when notification access is granted in Aether Bridge. Text clipboard sync works while the companion activity is open."
+                    : AndroidBridge.status === "storage-permission-denied"
+                        ? "The Android companion folder exists, but the host cannot write to it. Correct the Waydroid shared-storage permissions before enabling the bridge."
+                        : "Install and launch the Aether Bridge companion APK in Waydroid, then grant notification access. Clipboard synchronisation is foreground-only because Android restricts background clipboard access."
                 color: Theme.textDim; font.pixelSize: 11
             }
             Text {
