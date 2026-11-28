@@ -3,6 +3,7 @@
 #include <QVariantMap>
 #include <QHash>
 #include <QSortFilterProxyModel>
+#include <QDBusServiceWatcher>
 #include <QStringList>
 class NotificationDBusAdaptor;
 class QTimer;
@@ -12,7 +13,7 @@ class NotificationService final : public QAbstractListModel
     Q_PROPERTY(QAbstractItemModel *items READ items CONSTANT)
     Q_PROPERTY(QAbstractItemModel *groupedItems READ groupedItems CONSTANT)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(QString dbusStatus READ dbusStatus CONSTANT)
+    Q_PROPERTY(QString dbusStatus READ dbusStatus NOTIFY dbusStatusChanged)
 public:
     enum Role { IdRole = Qt::UserRole + 1, AppNameRole, AppIconRole, TitleRole, BodyRole, TimeRole, ActionsRole };
     Q_ENUM(Role)
@@ -34,10 +35,13 @@ public:
     Q_INVOKABLE bool closeNotification(uint id, uint reason = 3);
 signals:
     void countChanged();
+    void dbusStatusChanged();
     void pushed(const QString &title, const QString &body);
     void notificationClosed(uint id, uint reason);
     void actionInvoked(uint id, const QString &actionKey);
 private:
+    void setDbusStatus(const QString &status);
+    void registerNotificationEndpoint();
     int rowForId(uint id) const;
     uint nextNotificationId();
     QList<QVariantMap> m_notifications;
@@ -46,5 +50,6 @@ private:
     NotificationDBusAdaptor *m_dbusAdaptor = nullptr;
     QString m_dbusStatus = QStringLiteral("unavailable");
     bool m_dbusRegistered = false;
+    QDBusServiceWatcher *m_serviceWatcher = nullptr;
     QHash<uint, QTimer *> m_expiryTimers;
 };
