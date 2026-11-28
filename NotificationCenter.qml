@@ -48,7 +48,18 @@ Item {
                     id: card
                     anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 14 }
                     spacing: 3
-                    Text { visible: appName.length > 0; text: appName; color: Theme.textDim; font.pixelSize: 10 }
+                    Row {
+                        width: parent.width
+                        Text { width: parent.width - 20; visible: appName.length > 0; text: appName; color: Theme.textDim; font.pixelSize: 10; elide: Text.ElideRight }
+                        Text {
+                            text: "×"; color: Theme.textDim; font.pixelSize: 16
+                            MouseArea {
+                                anchors.fill: parent; anchors.margins: -4
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Notifications.closeNotification(notificationId)
+                            }
+                        }
+                    }
                     Row {
                         spacing: 8
                         Text { text: title; color: Theme.text; font.pixelSize: 13; font.bold: true }
