@@ -246,6 +246,12 @@ Item {
                     color: Theme.textDim
                     font.pixelSize: 11
                 }
+                Text {
+                    visible: System.hardware && System.hardware.batteryPresent && System.batteryHealth >= 0
+                    text: "Battery health: " + System.batteryHealth + "% of design capacity"
+                    color: Theme.textDim
+                    font.pixelSize: 10
+                }
                 Repeater {
                     model: System.hardware ? System.hardware.batteryDevices : []
                     delegate: Text { text: modelData; color: Theme.textDim; font.pixelSize: 10 }
