@@ -37,6 +37,7 @@ bool AudioService::run(const QString &program, const QStringList &arguments, QSt
 
 void AudioService::startDeviceMonitor()
 {
+    if (m_subscription) return;
     const QString pactl = QStandardPaths::findExecutable(QStringLiteral("pactl"));
     if (pactl.isEmpty()) return;
     m_subscription = new QProcess(this);
@@ -46,10 +47,20 @@ void AudioService::startDeviceMonitor()
             events.contains(" on server") || events.contains(" on sink-input"))
             m_debounceTimer->start();
     });
-    connect(m_subscription, &QProcess::errorOccurred, this, [this](QProcess::ProcessError) {
-        if (m_subscription && m_subscription->state() == QProcess::NotRunning)
-            m_subscription->deleteLater();
+    connect(m_subscription, &QProcess::finished, this,
+            [this](int, QProcess::ExitStatus) {
+        QProcess *finished = m_subscription;
         m_subscription = nullptr;
+        if (finished) finished->deleteLater();
+        QTimer::singleShot(5000, this, &AudioService::startDeviceMonitor);
+    });
+    connect(m_subscription, &QProcess::errorOccurred, this,
+            [this](QProcess::ProcessError error) {
+        if (error != QProcess::FailedToStart) return;
+        QProcess *failed = m_subscription;
+        m_subscription = nullptr;
+        if (failed) failed->deleteLater();
+        QTimer::singleShot(5000, this, &AudioService::startDeviceMonitor);
     });
     m_subscription->start(pactl, {QStringLiteral("subscribe")});
 }
