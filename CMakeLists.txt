@@ -56,6 +56,8 @@ qt_add_executable(aether-shell
     NotificationDBusAdaptor.h
     AudioService.cpp
     AudioService.h
+    WaydroidBridgeService.cpp
+    WaydroidBridgeService.h
     ClipboardService.cpp
     ClipboardService.h
     FileService.cpp
