@@ -6,6 +6,7 @@
 #include <QDBusMessage>
 #include <QDBusObjectPath>
 #include <QDBusReply>
+#include <QDBusVariant>
 #include <QDBusServiceWatcher>
 #include <QTimer>
 #include <algorithm>
