@@ -5,17 +5,75 @@
 #include <QUrl>
 #include <QRegularExpression>
 #include <QProcess>
+#include <QStorageInfo>
+#include <QStandardPaths>
+#include <QTimer>
 
 FileService::FileService(QObject *parent) : QAbstractListModel(parent), m_currentPath(QDir::homePath())
 {
     connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, &FileService::refresh);
+    refreshVolumes();
+    m_volumeTimer = new QTimer(this);
+    m_volumeTimer->setInterval(5000);
+    connect(m_volumeTimer, &QTimer::timeout, this, &FileService::refreshVolumes);
+    m_volumeTimer->start();
     refresh();
 }
-bool FileService::isInsideHome(const QString &path) const
+bool FileService::isInside(const QString &path, const QString &root) const
 {
-    const QString home = QDir::cleanPath(QDir::homePath());
-    const QString clean = QDir::cleanPath(path);
-    return clean == home || clean.startsWith(home + QDir::separator());
+    const QString cleanPath = QDir::cleanPath(path);
+    const QString cleanRoot = QDir::cleanPath(root);
+    return cleanPath == cleanRoot || cleanPath.startsWith(cleanRoot + QDir::separator());
+}
+bool FileService::isAllowedPath(const QString &path) const
+{
+    const QString canonical = QFileInfo(path).canonicalFilePath();
+    if (canonical.isEmpty()) return false;
+    if (isInside(canonical, QDir::homePath())) return true;
+    if (!m_androidSharedPath.isEmpty() && isInside(canonical, m_androidSharedPath)) return true;
+    for (const QString &root : m_allowedVolumeRoots)
+        if (isInside(canonical, root)) return true;
+    return false;
+}
+void FileService::refreshVolumes()
+{
+    QVariantList next;
+    QStringList roots;
+    const QList<QStorageInfo> mounted = QStorageInfo::mountedVolumes();
+    for (const QStorageInfo &storage : mounted) {
+        if (!storage.isValid() || !storage.isReady() || storage.rootPath().isEmpty()) continue;
+        const QString root = QDir::cleanPath(storage.rootPath());
+        // Never expose the system root or arbitrary fixed host partitions here.
+        if (!storage.isRemovable() || root == QStringLiteral("/")) continue;
+        roots.append(root);
+        next.append(QVariantMap{
+            {QStringLiteral("name"), storage.name().isEmpty() ? root : storage.name()},
+            {QStringLiteral("path"), root},
+            {QStringLiteral("total"), QVariant::fromValue<qlonglong>(storage.bytesTotal())},
+            {QStringLiteral("available"), QVariant::fromValue<qlonglong>(storage.bytesAvailable())},
+            {QStringLiteral("readOnly"), storage.isReadOnly()}
+        });
+    }
+
+    QString androidPath;
+    const QString userPath = QDir::homePath() + QStringLiteral("/.local/share/waydroid/data/media/0");
+    const QString systemPath = QStringLiteral("/var/lib/waydroid/data/media/0");
+    if (QFileInfo(userPath).isDir() && QFileInfo(userPath).isReadable())
+        androidPath = QFileInfo(userPath).canonicalFilePath();
+    else if (QFileInfo(systemPath).isDir() && QFileInfo(systemPath).isReadable())
+        androidPath = QFileInfo(systemPath).canonicalFilePath();
+
+    if (next != m_volumes || roots != m_allowedVolumeRoots || androidPath != m_androidSharedPath) {
+        m_volumes = next;
+        m_allowedVolumeRoots = roots;
+        m_androidSharedPath = androidPath;
+        emit volumesChanged();
+        if (!isAllowedPath(m_currentPath)) {
+            m_currentPath = QDir::homePath();
+            emit directoryChanged();
+            refresh();
+        }
+    }
 }
 int FileService::rowCount(const QModelIndex &parent) const
 {
@@ -53,8 +111,8 @@ bool FileService::openDirectory(const QString &path)
 {
     const QFileInfo info(path);
     const QString canonical = info.canonicalFilePath();
-    if (!info.exists() || !info.isDir() || canonical.isEmpty() || !isInsideHome(canonical)) {
-        emit operationFailed(QStringLiteral("open-directory"), QStringLiteral("Only directories inside the user's home folder are currently available."));
+    if (!info.exists() || !info.isDir() || canonical.isEmpty() || !isAllowedPath(canonical)) {
+        emit operationFailed(QStringLiteral("open-directory"), QStringLiteral("Choose your home folder, an attached removable drive, or the detected Android shared-storage folder."));
         return false;
     }
     if (m_watcher.directories().contains(m_currentPath)) m_watcher.removePath(m_currentPath);
@@ -63,7 +121,8 @@ bool FileService::openDirectory(const QString &path)
 bool FileService::goUp()
 {
     const QString home = QDir::cleanPath(QDir::homePath());
-    if (m_currentPath == home) return false;
+    if (m_currentPath == home || (!m_androidSharedPath.isEmpty() && m_currentPath == m_androidSharedPath) ||
+        m_allowedVolumeRoots.contains(m_currentPath)) return false;
     return openDirectory(QDir(m_currentPath).absoluteFilePath(QStringLiteral("..")));
 }
 bool FileService::createDirectory(const QString &name)
@@ -83,15 +142,13 @@ bool FileService::renameEntry(const QString &oldName, const QString &newName)
 {
     if (oldName.isEmpty() || newName.isEmpty() || oldName.contains('/') || newName.contains('/') ||
         oldName == QStringLiteral("..") || newName == QStringLiteral("..")) {
-        emit operationFailed(QStringLiteral("rename"), QStringLiteral("Enter valid names."));
-        return false;
+        emit operationFailed(QStringLiteral("rename"), QStringLiteral("Enter valid names.")); return false;
     }
     const QString source = QDir(m_currentPath).absoluteFilePath(oldName);
     const QString target = QDir(m_currentPath).absoluteFilePath(newName);
-    if (!isInsideHome(source) || !isInsideHome(target) || QFileInfo::exists(target) ||
-        !QFile::rename(source, target)) {
-        emit operationFailed(QStringLiteral("rename"), QStringLiteral("The item could not be renamed."));
-        return false;
+    if (!isAllowedPath(source) || !isAllowedPath(m_currentPath) ||
+        !isAllowedPath(target) || QFileInfo::exists(target) || !QFile::rename(source, target)) {
+        emit operationFailed(QStringLiteral("rename"), QStringLiteral("The item could not be renamed.")); return false;
     }
     refresh(); return true;
 }
@@ -99,29 +156,24 @@ bool FileService::trashEntry(const QString &path)
 {
     const QFileInfo info(path);
     const QString canonical = info.canonicalFilePath();
-    if (!info.exists() || canonical.isEmpty() || !isInsideHome(canonical) ||
-        canonical == QDir::cleanPath(QDir::homePath())) {
-        emit operationFailed(QStringLiteral("trash"), QStringLiteral("That item cannot be moved to the trash."));
-        return false;
+    if (!info.exists() || canonical.isEmpty() || !isAllowedPath(canonical) ||
+        canonical == QDir::cleanPath(QDir::homePath()) || canonical == m_androidSharedPath ||
+        m_allowedVolumeRoots.contains(canonical)) {
+        emit operationFailed(QStringLiteral("trash"), QStringLiteral("That item cannot be moved to the trash.")); return false;
     }
-    const int result = QProcess::execute(QStringLiteral("gio"),
-                                         {QStringLiteral("trash"), canonical});
+    const int result = QProcess::execute(QStringLiteral("gio"), {QStringLiteral("trash"), canonical});
     if (result != 0) {
-        emit operationFailed(QStringLiteral("trash"), QStringLiteral("Could not move the item to the desktop trash. The gio utility may be unavailable."));
-        return false;
+        emit operationFailed(QStringLiteral("trash"), QStringLiteral("Could not move the item to the desktop trash. The gio utility may be unavailable.")); return false;
     }
-    refresh();
-    return true;
+    refresh(); return true;
 }
-
 bool FileService::openFile(const QString &path)
 {
     const QFileInfo info(path);
     const QString canonical = info.canonicalFilePath();
-    if (!info.isFile() || canonical.isEmpty() || !isInsideHome(canonical) ||
+    if (!info.isFile() || canonical.isEmpty() || !isAllowedPath(canonical) ||
         !QDesktopServices::openUrl(QUrl::fromLocalFile(canonical))) {
-        emit operationFailed(QStringLiteral("open-file"), QStringLiteral("The file could not be opened by a registered desktop application."));
-        return false;
+        emit operationFailed(QStringLiteral("open-file"), QStringLiteral("The file could not be opened by its registered MIME/default application.")); return false;
     }
     return true;
 }
