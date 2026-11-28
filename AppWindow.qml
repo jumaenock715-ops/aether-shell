@@ -12,7 +12,7 @@ Rectangle {
     signal focusRequested()
 
     width: 660; height: 440
-    radius: maximized ? 0 : Theme.radius
+    radius: maximized ? 0 : 18
     color: Theme.surfaceStrong
     border.color: focused ? Theme.accent : Theme.border
     border.width: focused ? 2 : 1
@@ -43,7 +43,7 @@ Rectangle {
     // Title bar
     Rectangle {
         id: bar
-        width: parent.width; height: 38
+        width: parent.width; height: 44
         color: Theme.surface
 
         MouseArea {
