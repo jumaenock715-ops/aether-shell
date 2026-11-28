@@ -76,7 +76,7 @@ User-session responsibilities that do not inherently require elevated privileges
 
 Session Settings is a distinct in-process service under active development. It persists dark/light mode, accent colour, and do-not-disturb across shell restarts, with schema versioning and defaults. Do-not-disturb is a user notification preference and suppresses toast presentation. Display brightness, Wi-Fi, Bluetooth, and power state are not ordinary user preferences and must ultimately be controlled by system providers.
 
-The native `SessionManager` continues to track Linux `QProcess` instances. A separate `AndroidSessionManager` now records Android package launch requests and Waydroid command outcomes without treating the short-lived CLI process as the Android app process. It deliberately reports Android activity state as `unknown`: the current adapter does not yet receive authoritative per-activity start, stop, focus, or exit events. The two provider-specific managers are exposed separately and can later sit behind a unified session API once real Android lifecycle events are available.
+The native `SessionManager` continues to track Linux `QProcess` instances. A separate `AndroidSessionManager` now records Android package launch requests and Waydroid command outcomes without treating the short-lived CLI process as the Android app process. The session service set now also includes an initial `AudioService` for PipeWire/PulseAudio-compatible device and level control, a `ClipboardService` for the session text clipboard and ephemeral history, and a `FileService` backing the first home-folder file manager. These are source-level adapters, not yet runtime-validated system daemons. It deliberately reports Android activity state as `unknown`: the current adapter does not yet receive authoritative per-activity start, stop, focus, or exit events. The two provider-specific managers are exposed separately and can later sit behind a unified session API once real Android lifecycle events are available.
 
 ### 5. System services
 
@@ -146,7 +146,7 @@ The current shell is a Qt Wayland client, not a compositor. Android app windows 
 |---|---|---|
 | Applications | unified Android/Linux entries, provider, metadata, launchability | launch by stable application ID |
 | Android runtime | availability, status, capabilities, installed packages | start/stop runtime; install/remove/update APK; launch/stop package |
-| Notifications | active notifications, unread count, source | publish, dismiss, mark read |
+| Notifications | active notifications, unread count, source | publish, dismiss, action invocation |\n| Audio | default output/input devices, volume and mute state | set output/input level, mute, select default device |\n| Clipboard | current text and in-memory text history | copy text, restore history entry, clear history |\n| Files | current home-folder path and readable entries | browse, create folder, rename, trash, open file |
 | Session settings | persisted preferences and schema version | update validated user preference |
 | Network | devices, connection state, available networks | connect, disconnect, radio control where supported |
 | Power | battery, charging state, power source | request supported power profile |
@@ -160,8 +160,11 @@ A UI control must not optimistically claim that an operation succeeded before th
 - `System.qml` contains demonstration properties for Wi-Fi, Bluetooth, do-not-disturb, brightness, and battery. These are placeholders, not hardware integration.
 - `ApplicationService.cpp/.h` exposes a unified provider-aware catalogue and delegates Linux process launches to `SessionManager` and Android launches to `AndroidSessionManager`. `WaydroidRuntimeAdapter.cpp/.h` supplies Android package records and asynchronous runtime commands. Target-aware operation results are passed back to the Android session model.
 - `AppCatalog.cpp/.h` provides the themed-icon image provider.
-- `NotificationService.cpp/.h` provides an in-process notification model; external D-Bus notification integration remains future work.
+- `NotificationService.cpp/.h` provides the notification model and a source implementation of the freedesktop `org.freedesktop.Notifications` D-Bus server, including replacement, expiry, dismissal, and action signals. It has not been compiled or tested against native apps or Waydroid.
 - `SessionManager.cpp/.h` tracks launched Linux processes. `AndroidSessionManager.cpp/.h` records Android launch requests, command completion/failure, and confirmed runtime-session stop; its `activityState` remains `unknown` because no per-activity event bridge exists. Neither manager is a complete login/session supervisor.
+- `AudioService.cpp/.h` uses `wpctl` with `pactl` fallback for default output/input levels and mute state, and `pactl` for default device enumeration/selection. It is synchronous and preliminary; per-app routing, hotplug events, stream control, and Android audio validation remain outstanding.
+- `ClipboardService.cpp/.h` integrates the Qt session text clipboard and retains up to 30 non-empty text entries in memory only. Image/file MIME support, persistence, and Android clipboard synchronisation are not implemented.
+- `FileService.cpp/.h` and `FilesApp.qml` provide home-folder browsing, directory monitoring, folder creation, rename, trash through `gio`, and opening files with registered desktop applications. File picking, external/removable storage, full MIME launch context, network shares, and Android shared-storage integration remain outstanding.
 - `SessionSettings.cpp/.h` persists dark/light mode, accent colour, and do-not-disturb through QSettings with schema version 2. The existing Settings and Quick Settings UI use the service. Other settings categories and migrations remain future work.
 - `main.cpp` constructs the shell and current in-process services. These are not yet separate system daemons.
 
@@ -172,7 +175,7 @@ A UI control must not optimistically claim that an operation succeeded before th
 3. **Complete and validate the unified application model** and provider dispatch. The first catalogue/dispatch structure is now committed.
 4. **Implement a concrete Android runtime adapter**, initially targeting Waydroid. The asynchronous CLI adapter is now present in source, with session controls exposed in Settings; runtime installation, image initialization, and real execution validation remain outstanding.
 5. **Add provider-specific application lifecycle tracking.** Linux process tracking remains in `SessionManager`; `AndroidSessionManager` now records Android package launch requests and command outcomes. The remaining work is an authoritative Waydroid activity/window event bridge before Aether can report an Android app as actually running or stopped.
-6. **Integrate notification, clipboard, file, audio, input, and graphics bridges** one capability at a time.
+6. **Complete and validate desktop session services:** notification D-Bus conformance, asynchronous audio/device handling, clipboard MIME and privacy behaviour, file picker/volume/MIME support, then Android clipboard/file/audio bridges.
 7. **Integrate existing Linux system managers** for network, power, display, and devices.
 8. **Add persistence migration, authorization, error handling, and security hardening.**
 9. **Package for Debian** after source architecture is ready.
@@ -189,7 +192,7 @@ A UI control must not optimistically claim that an operation succeeded before th
 
 Android runtime integration has initial source-level app/session operations, but it is not yet validated and does not provide the complete Android desktop experience.
 
-## Development constraints
+## Desktop integration status\n\nThe desktop services have initial source implementations and QML entry points, but this is not a claim of a complete or operational desktop. The notification D-Bus server and action UI need conformance testing. Audio currently shells out to `wpctl`/`pactl` synchronously and does not manage individual application streams. Clipboard history is session-memory text only and is not bridged to Android. Files is restricted to the home directory and does not yet provide file-picker APIs, removable-volume browsing, or Android shared storage. The existing Wi-Fi, Bluetooth, brightness, and battery values in `System.qml` remain demonstration state.\n\n## Development constraints
 
 - Preserve the current Aether Shell design and existing QML assets.
 - Make changes on development branches; do not casually modify `main`.
