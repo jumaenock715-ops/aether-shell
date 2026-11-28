@@ -37,7 +37,7 @@ NotificationService::NotificationService(QObject *parent) : QAbstractListModel(p
 NotificationService::~NotificationService()
 {
     if (!m_dbusRegistered) return;
-    const QDBusConnection bus = QDBusConnection::sessionBus();
+    QDBusConnection bus = QDBusConnection::sessionBus();
     bus.unregisterObject(kNotificationPath);
     bus.unregisterService(kNotificationService);
 }
