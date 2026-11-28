@@ -70,7 +70,8 @@ Window tracking is optional at build time. If `libwayland-dev` and `libwayland-b
 ## Build (Ubuntu / Debian)
     sudo apt install build-essential cmake qt6-base-dev qt6-declarative-dev \
          qml6-module-qtquick qml6-module-qtquick-window
-    # Optional host desktop utilities (audio + trash):\n    sudo apt install pipewire-bin pulseaudio-utils libglib2.0-bin
+    # Optional host desktop utilities (audio + trash):
+    sudo apt install pipewire-bin pulseaudio-utils libglib2.0-bin
     cmake -B build -S .
     cmake --build build -j
     ./build/aether-shell
