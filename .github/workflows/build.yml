@@ -49,7 +49,7 @@ jobs:
               gdbus call --session --dest org.freedesktop.Notifications \
                 --object-path /org/freedesktop/Notifications \
                 --method org.freedesktop.Notifications.Notify \
-                "Aether CI" 0 "" "D-Bus smoke test" "Notification endpoint is responding." "@as []" "@a{sv} {}" 5000
+                "Aether CI" 0 "" "D-Bus smoke test" "Notification endpoint is responding." "['default', 'Open']" "{'urgency': <byte 1>}" 5000
               wait "$shell_pid"
             '
           cat run.log
