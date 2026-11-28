@@ -13,7 +13,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dev libxkbcommon-x11-0 \
             libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
-            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libglib2.0-bin
       - name: Build
         run: |
           cmake -B build -S .
@@ -23,8 +23,31 @@ jobs:
           mkdir -p shots
           : > run.log
           timeout 90 xvfb-run -a -s "-screen 0 1280x800x24" \
-            dbus-run-session -- env QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
-            AETHER_DEMO_DIR="$PWD/shots" ./build/aether-shell > run.log 2>&1
+            dbus-run-session -- bash -euo pipefail -c '
+              env QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
+                AETHER_DEMO_DIR="$PWD/shots" ./build/aether-shell > run.log 2>&1 &
+              shell_pid=$!
+              trap "kill $shell_pid 2>/dev/null || true" EXIT
+              for attempt in $(seq 1 50); do
+                if gdbus introspect --session --dest org.freedesktop.Notifications \
+                    --object-path /org/freedesktop/Notifications > dbus-introspection.txt 2>&1; then
+                  break
+                fi
+                sleep 0.2
+              done
+              grep -q "org.freedesktop.Notifications" dbus-introspection.txt
+              gdbus call --session --dest org.freedesktop.Notifications \
+                --object-path /org/freedesktop/Notifications \
+                --method org.freedesktop.Notifications.GetCapabilities
+              gdbus call --session --dest org.freedesktop.Notifications \
+                --object-path /org/freedesktop/Notifications \
+                --method org.freedesktop.Notifications.GetServerInformation
+              gdbus call --session --dest org.freedesktop.Notifications \
+                --object-path /org/freedesktop/Notifications \
+                --method org.freedesktop.Notifications.Notify \
+                "Aether CI" 0 "" "D-Bus smoke test" "Notification endpoint is responding." "[]" "{}" -1
+              wait "$shell_pid"
+            '
           cat run.log
           grep -q "AETHER_SETTINGS_WINDOW_LOADED" run.log || {
             echo "SettingsApp did not instantiate during the settings snapshot."
