@@ -12,4 +12,6 @@ QtObject {
     property bool dnd: false
     readonly property real brightness: hardware && hardware.brightness >= 0 ? hardware.brightness / 100 : 0
     readonly property int battery: hardware ? hardware.batteryPercent : 0
+    readonly property string batteryStatus: hardware ? hardware.batteryStatus : "Unknown"
+    readonly property int batteryHealth: hardware ? hardware.batteryHealth : -1
 }
