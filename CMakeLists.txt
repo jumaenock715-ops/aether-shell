@@ -54,6 +54,12 @@ qt_add_executable(aether-shell
     NotificationService.h
     NotificationDBusAdaptor.cpp
     NotificationDBusAdaptor.h
+    AudioService.cpp
+    AudioService.h
+    ClipboardService.cpp
+    ClipboardService.h
+    FileService.cpp
+    FileService.h
     SessionManager.cpp
     SessionManager.h
     SessionSettings.cpp
@@ -85,6 +91,7 @@ qt_add_qml_module(aether-shell
         QuickSettings.qml
         NotificationCenter.qml
         AppWindow.qml
+        FilesApp.qml
         SettingsApp.qml
         PlaceholderApp.qml
 )
