@@ -3,6 +3,7 @@ import QtQuick
 Item {
     id: root
     property string newFolderName: ""
+    property string renameOldName: ""
 
     Connections {
         target: FileService
@@ -76,6 +77,32 @@ Item {
                             if (FileService.createDirectory(folderName.text)) {
                                 folderName.text = ""; folderEntry.visible = false
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            visible: root.renameOldName.length > 0
+            width: parent.width; height: 36; radius: 7
+            color: Theme.surface; border.color: Theme.border
+            Row {
+                anchors.fill: parent; anchors.margins: 5; spacing: 6
+                TextInput {
+                    id: renameInput
+                    width: parent.width - 64; height: parent.height
+                    text: root.renameOldName
+                    verticalAlignment: TextInput.AlignVCenter
+                    color: Theme.text; font.pixelSize: 12
+                }
+                Text {
+                    text: "Save"; color: Theme.accent2; font.pixelSize: 12
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (FileService.renameEntry(root.renameOldName, renameInput.text))
+                                root.renameOldName = ""
                         }
                     }
                 }
