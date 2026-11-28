@@ -37,6 +37,7 @@ Item {
             clip: true; spacing: 10
             model: Notifications.items
             delegate: Rectangle {
+                required property string appName
                 required property string title
                 required property string body
                 required property string time
@@ -47,6 +48,7 @@ Item {
                     id: card
                     anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 14 }
                     spacing: 3
+                    Text { visible: appName.length > 0; text: appName; color: Theme.textDim; font.pixelSize: 10 }
                     Row {
                         spacing: 8
                         Text { text: title; color: Theme.text; font.pixelSize: 13; font.bold: true }
