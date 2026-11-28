@@ -15,6 +15,8 @@ qt_add_executable(aether-shell
     SystemBridge.h
     NetworkService.cpp
     NetworkService.h
+    LinuxHardwareService.cpp
+    LinuxHardwareService.h
 )
 
 # Singletons must be flagged before the QML module is created.
