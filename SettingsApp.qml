@@ -235,6 +235,23 @@ Item {
                             onToggled: (v) => Audio.setStreamMuted(modelData.id, v)
                         }
                     }
+                    Row {
+                        spacing: 5
+                        Text { text: "Output:"; color: Theme.textDim; font.pixelSize: 9 }
+                        Repeater {
+                            model: Audio.outputs
+                            delegate: Text {
+                                required property var modelData
+                                text: modelData.name
+                                color: Theme.accent2; font.pixelSize: 9
+                                elide: Text.ElideRight
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: Audio.moveStreamToOutput(modelData.id, modelData.name)
+                                }
+                            }
+                        }
+                    }
                 }
             }
             Text {
@@ -246,7 +263,7 @@ Item {
             MouseArea { width: 100; height: 22; onClicked: Audio.refresh() }
             Text {
                 width: parent.width; wrapMode: Text.WordWrap
-                text: "Device discovery and selection use pactl. Volume and mute use wpctl with pactl fallback. Per-application routing, audio capture and Android audio bridging remain future integration work."
+                text: "Device discovery and selection use pactl. Volume and mute use wpctl with pactl fallback. Per-application stream volume, mute and output routing use the PulseAudio-compatible PipeWire interface. Waydroid is exposed as a host audio stream when the runtime presents one; individual Android-app streams depend on the runtime audio backend."
                 color: Theme.textDim; font.pixelSize: 10
             }
         }
