@@ -11,37 +11,74 @@ Item {
     }
     property int page: 0
     readonly property var pages: ["Appearance", "Display", "Network", "Notifications", "Audio", "Android", "About"]
+    readonly property var pageDescriptions: ["Personalise the Aether experience", "Brightness and visual behaviour", "Wireless connectivity controls", "Alerts, quiet mode and delivery", "Output, microphone and devices", "Android app compatibility layer", "Version and project information"]
+    readonly property var pageGroups: ["PERSONALISATION", "PERSONALISATION", "CONNECTIONS", "PERSONALISATION", "DEVICE", "DEVICE", "SYSTEM"]
     readonly property var accents: ["#6D4AFF", "#14B8D4", "#3DDC97", "#FF5C7A", "#FFB020"]
 
     Rectangle {
         id: side
-        width: 184; height: parent.height
+        width: 210; height: parent.height
         color: Theme.panel
         Column {
             anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
             spacing: 6
             Repeater {
                 model: root.pages
-                delegate: Rectangle {
+                delegate: Column {
                     required property int index
                     required property string modelData
-                    width: parent.width; height: 42; radius: 12
-                    color: root.page === index ? Theme.accent : "transparent"
-                    Text { anchors.verticalCenter: parent.verticalCenter; x: 14; text: modelData
-                           color: root.page === index ? "white" : Theme.text; font.pixelSize: 14 }
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.page = index }
+                    width: parent.width
+                    spacing: 3
+                    Text {
+                        visible: index === 0 || root.pageGroups[index] !== root.pageGroups[index - 1]
+                        text: root.pageGroups[index]
+                        color: Theme.textDim
+                        font.pixelSize: 9
+                        font.bold: true
+                        font.letterSpacing: 1.1
+                        leftPadding: 10
+                        topPadding: index === 0 ? 4 : 12
+                    }
+                    Rectangle {
+                        width: parent.width
+                        height: 52
+                        radius: 14
+                        color: root.page === index ? Theme.accent : "transparent"
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 8
+                            spacing: 2
+                            Text {
+                                text: modelData
+                                color: root.page === index ? "white" : Theme.text
+                                font.pixelSize: 13
+                                font.bold: root.page === index
+                            }
+                            Text {
+                                width: parent.width
+                                text: root.pageDescriptions[index]
+                                color: root.page === index ? "#E6E0FF" : Theme.textDim
+                                font.pixelSize: 9
+                                elide: Text.ElideRight
+                            }
+                        }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.page = index }
+                    }
                 }
             }
         }
     }
 
     Item {
-        anchors { left: side.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: 28 }
+        anchors { left: side.right; right: parent.right; top: parent.top; bottom: parent.bottom; leftMargin: 32; rightMargin: 28; topMargin: 26; bottomMargin: 24 }
 
         // Appearance
         Column {
             visible: root.page === 0; spacing: 18; width: parent.width
-            Text { text: "Appearance"; color: Theme.text; font.pixelSize: 21; font.bold: true }
+            Text { text: "Appearance"; color: Theme.text; font.pixelSize: 25; font.bold: true }
             Row {
                 spacing: 16
                 Text { text: "Dark mode"; color: Theme.text; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
@@ -70,7 +107,7 @@ Item {
         // Display
         Column {
             visible: root.page === 1; spacing: 18; width: parent.width
-            Text { text: "Display"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Text { text: "Display"; color: Theme.text; font.pixelSize: 22; font.bold: true }
             Text { text: "Brightness"; color: Theme.text; font.pixelSize: 14 }
             AetherSlider { width: 260; value: System.brightness; onMoved: (v) => System.brightness = v }
         }
