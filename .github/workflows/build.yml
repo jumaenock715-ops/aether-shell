@@ -18,18 +18,23 @@ jobs:
         run: |
           cmake -B build -S .
           cmake --build build -j
-      - name: Click-through demo
-        continue-on-error: true
+      - name: Capture desktop snapshots
         run: |
           mkdir -p shots
-          AETHER_DEMO_DIR="$PWD/shots" timeout 90 xvfb-run -a -s "-screen 0 1280x800x24" \
-            ./build/aether-shell > run.log 2>&1 || true
-          cat run.log || true
-          ls -la shots
+          : > run.log
+          timeout 90 xvfb-run -a -s "-screen 0 1280x800x24" \
+            dbus-run-session -- env QT_QPA_PLATFORM=xcb QT_QUICK_BACKEND=software \
+            AETHER_DEMO_DIR="$PWD/shots" ./build/aether-shell > run.log 2>&1
+          cat run.log
+          for snapshot in 01-start 02-launcher 03-settings 04-windows 05-quick-settings 06-notifications 07-light-theme; do
+            test -s "shots/$snapshot.png" || { echo "Missing snapshot: $snapshot.png"; exit 1; }
+          done
+          ls -lh shots
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: aether-output
+          name: aether-desktop-snapshots
           path: |
-            shots
+            shots/*.png
             run.log
+          if-no-files-found: error
