@@ -287,6 +287,43 @@ Item {
                     value: System.brightness
                     onMoved: (v) => { if (System.hardware) System.hardware.setBrightness(Math.round(v * 100)) }
                 }
+                Text { text: "Audio output"; color: Theme.textDim; font.pixelSize: 12 }
+                Repeater {
+                    model: System.hardware ? System.hardware.audioOutputs : []
+                    delegate: Text {
+                        width: parent.width
+                        text: (modelData.description || modelData.name)
+                              + (System.hardware.audioOutput === modelData.name ? " · Default" : "")
+                        color: System.hardware.audioOutput === modelData.name ? Theme.accent : Theme.text
+                        font.pixelSize: 11
+                        elide: Text.ElideRight
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: if (System.hardware) System.hardware.setAudioOutput(modelData.name)
+                        }
+                    }
+                }
+                Text {
+                    text: System.hardware && System.hardware.audioOutputs.length
+                          ? "" : "No PipeWire/PulseAudio outputs detected"
+                    color: Theme.textDim; font.pixelSize: 10
+                }
+                Text { text: "Audio input"; color: Theme.textDim; font.pixelSize: 12 }
+                Repeater {
+                    model: System.hardware ? System.hardware.audioInputs : []
+                    delegate: Text {
+                        width: parent.width
+                        text: (modelData.description || modelData.name)
+                              + (System.hardware.audioInput === modelData.name ? " · Default" : "")
+                        color: System.hardware.audioInput === modelData.name ? Theme.accent : Theme.text
+                        font.pixelSize: 11
+                        elide: Text.ElideRight
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: if (System.hardware) System.hardware.setAudioInput(modelData.name)
+                        }
+                    }
+                }
                 Text { text: "Audio volume"; color: Theme.textDim; font.pixelSize: 12 }
                 AetherSlider {
                     width: parent.width
