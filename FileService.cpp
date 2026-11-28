@@ -1,5 +1,6 @@
 #include "FileService.h"
 #include <QDesktopServices>
+#include <QFile>
 #include <QFileInfo>
 #include <QUrl>
 #include <QRegularExpression>
