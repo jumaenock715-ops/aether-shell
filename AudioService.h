@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QVariantList>
+#include <QStringList>
 
 class AudioService final : public QObject
 {
