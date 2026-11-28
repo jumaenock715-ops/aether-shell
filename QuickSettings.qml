@@ -51,6 +51,28 @@ Item {
                 QuickTile { width: parent.cw; label: "Do not disturb"; subtitle: System.dnd ? "On" : "Off"; on: System.dnd; onClicked: System.dnd = !System.dnd }
             }
 
+            Column {
+                width: parent.width
+                spacing: 5
+                Row {
+                    spacing: 10
+                    Text { text: "Bluetooth devices"; color: Theme.textDim; font.pixelSize: 12 }
+                    Text { text: "Discover"; color: Theme.accent; font.pixelSize: 12; MouseArea { anchors.fill: parent; onClicked: if (System.hardware) System.hardware.scanBluetooth() } }
+                }
+                Repeater {
+                    model: System.hardware ? System.hardware.bluetoothDevices : []
+                    delegate: Row {
+                        width: parent.width
+                        spacing: 8
+                        property var fields: modelData.split(" ")
+                        Text { text: modelData; color: Theme.text; font.pixelSize: 10; width: 150; elide: Text.ElideRight }
+                        Text { text: "Pair"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.pairBluetooth(fields[1]) } }
+                        Text { text: "Connect"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.connectBluetooth(fields[1]) } }
+                        Text { text: "Remove"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.removeBluetooth(fields[1]) } }
+                    }
+                }
+            }
+
             Row {
                 width: parent.width
                 spacing: 8
