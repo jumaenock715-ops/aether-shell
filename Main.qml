@@ -200,6 +200,6 @@ Window {
     }
 
     Component.onCompleted: {
-        Notifications.push("Welcome to Aether", "Open the launcher from the top-left button or the dock.")
+        Notifications.push("Welcome to Aether", "Open the launcher from the centered taskbar.")
     }
 }
