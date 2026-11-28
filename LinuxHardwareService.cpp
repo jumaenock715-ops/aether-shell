@@ -156,13 +156,14 @@ void LinuxHardwareService::refresh()
         bool capacityOk = false;
         int capacity = readText(path + QStringLiteral("/capacity")).toInt(&capacityOk);
         if (capacityOk && (capacity < 0 || capacity > 100)) capacityOk = false;
-        double full = readText(path + QStringLiteral("/energy_full")).toDouble();
-        double now = readText(path + QStringLiteral("/energy_now")).toDouble();
-        int metric = full > 0.0 && now >= 0.0 ? 1 : 0;
+        bool fullOk = false, nowOk = false;
+        double full = readText(path + QStringLiteral("/energy_full")).toDouble(&fullOk);
+        double now = readText(path + QStringLiteral("/energy_now")).toDouble(&nowOk);
+        int metric = fullOk && nowOk && full > 0.0 && now >= 0.0 ? 1 : 0;
         if (!metric) {
-            full = readText(path + QStringLiteral("/charge_full")).toDouble();
-            now = readText(path + QStringLiteral("/charge_now")).toDouble();
-            if (full > 0.0 && now >= 0.0) metric = 2;
+            full = readText(path + QStringLiteral("/charge_full")).toDouble(&fullOk);
+            now = readText(path + QStringLiteral("/charge_now")).toDouble(&nowOk);
+            if (fullOk && nowOk && full > 0.0 && now >= 0.0) metric = 2;
         }
         if (!capacityOk && metric) {
             capacity = qBound(0, qRound(now / full * 100.0), 100);
