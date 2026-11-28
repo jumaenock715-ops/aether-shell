@@ -2,7 +2,7 @@ import QtQuick
 
 Item {
     id: root
-    signal closeRequested()
+    signal closeRequested()\n    property string selectedSsid: ""
 
     MouseArea { anchors.fill: parent; onClicked: root.closeRequested() }
 
