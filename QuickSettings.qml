@@ -308,6 +308,29 @@ Item {
                           ? "" : "No PipeWire/PulseAudio outputs detected"
                     color: Theme.textDim; font.pixelSize: 10
                 }
+                Text {
+                    text: "Analogue / AUX port"
+                    color: Theme.textDim
+                    font.pixelSize: 12
+                    visible: System.hardware && System.hardware.audioOutputPorts.length > 0
+                }
+                Repeater {
+                    model: System.hardware ? System.hardware.audioOutputPorts : []
+                    delegate: Text {
+                        width: parent.width
+                        text: (modelData.description || modelData.name)
+                              + (System.hardware.audioOutputPort === modelData.name ? " · Active" : "")
+                              + (modelData.available === "no" ? " · Unplugged" : "")
+                        color: System.hardware.audioOutputPort === modelData.name ? Theme.accent : Theme.text
+                        font.pixelSize: 11
+                        elide: Text.ElideRight
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: modelData.available !== "no"
+                            onClicked: if (System.hardware) System.hardware.setAudioOutputPort(modelData.name)
+                        }
+                    }
+                }
                 Text { text: "Audio input"; color: Theme.textDim; font.pixelSize: 12 }
                 Repeater {
                     model: System.hardware ? System.hardware.audioInputs : []
