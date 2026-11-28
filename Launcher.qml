@@ -7,7 +7,12 @@ Item {
     signal closeRequested()
 
     property string query: ""
-    readonly property var results: Apps.list.concat(AppCatalog.apps).filter(function (a) {
+    readonly property var results: Apps.list.concat(AppCatalog.apps.filter(function (nativeApp) {
+        // Prefer Aether's built-in Settings and Files over host desktop duplicates.
+        const name = (nativeApp.name || "").toLowerCase()
+        return name !== "settings" && name !== "system settings" &&
+               name !== "files" && name !== "file manager"
+    })).filter(function (a) {
         return a.name.toLowerCase().indexOf(query.toLowerCase()) >= 0
     })
 
