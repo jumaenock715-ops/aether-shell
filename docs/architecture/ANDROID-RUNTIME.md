@@ -177,11 +177,12 @@ A LineageOS/AOSP-derived runtime does not automatically include licensed Google 
 4. Runtime adapter skeleton — the Android provider interface is committed and remains independent of whether Waydroid is installed.
 5. Waydroid CLI backend — asynchronous app-list, launch, APK install/remove, and user-session start/stop operations are implemented. Launcher requests start the user session automatically when needed; Settings also exposes manual session controls and refresh. Runtime installation, image initialization, kernel configuration, and validation remain outstanding.
 6. Android request ledger, Wayland foreign-toplevel tracker, and Waydroid-specific package identity resolver — source implementation present. Standard Waydroid multi-window app IDs are resolved using the documented vendor namespace; multi-window mode must be enabled in the image. The wlr protocol fallback remains outstanding. Weston is excluded as the reference compositor for this feature; labwc/Sway are candidates.
-7. Freedesktop notification D-Bus server — source implementation present; end-to-end validation with native Linux and Waydroid notifications remains outstanding.
-8. Clipboard, file, audio, and input bridges.
-9. Debian packaging and kernel configuration.
-10. Runtime testing on real target hardware.
-11. ARM64 platform and ARM ABI strategy.
+7. Freedesktop notification D-Bus server and QML action/dismissal UI — source implementation present; D-Bus conformance and end-to-end validation with native Linux and Waydroid notifications remain outstanding.
+8. Initial host audio, clipboard, and file services — source implementation present; Android clipboard, shared-storage/file-provider, and audio-routing bridges remain outstanding.
+9. Input bridges and remaining Android integration.
+10. Debian packaging and kernel configuration.
+11. Runtime testing on real target hardware.
+12. ARM64 platform and ARM ABI strategy.
 
 ## 11. Current implementation status
 
@@ -189,7 +190,10 @@ Implemented in source:
 - Qt/QML shell and launcher;
 - unified application catalogue/dispatch structure with Linux XDG discovery and optional Waydroid adapter;
 - preliminary Linux process launch tracking;
-- notification model and freedesktop `org.freedesktop.Notifications` D-Bus server (source implementation);
+- notification model and freedesktop `org.freedesktop.Notifications` D-Bus server with action/dismissal UI (source implementation);
+- initial host audio service for default input/output levels, mute state, and device selection;
+- session clipboard text history (in-memory, maximum 30 entries);
+- home-folder file service and QML file manager (browse, create folder, rename, trash, open);
 - Session Settings persistence for dark mode, accent colour, and do-not-disturb;
 - Android launch-request ledger;
 - Android window-event contract and per-package multi-window aggregation.
@@ -199,8 +203,10 @@ Not implemented or not validated:
 - ART integration, Binder/BinderFS configuration, Waydroid installation and image initialization;
 - compile/runtime validation of the Wayland foreign-toplevel tracker and Waydroid package identity resolver;
 - authoritative Android activity lifecycle events;
-- end-to-end validation of Android notification forwarding through Waydroid and Aether's D-Bus endpoint;
-- clipboard, file, audio, and input bridges;
+- D-Bus conformance and end-to-end validation of native/Android notification forwarding;
+- Android clipboard bridge and file shared-storage/document-provider bridge;
+- Android audio routing validation, per-application audio controls, and input bridge;
+- full file picker, removable-volume support, MIME launch context, and network shares;
 - per-Android-app termination;
 - ARM native-library translation.
 
@@ -209,4 +215,15 @@ The Waydroid adapter invokes CLI operations as separate QProcess arguments, neve
 
 ## 12. Android and native desktop notifications
 
-Aether's `NotificationService` now owns the freedesktop `org.freedesktop.Notifications` session-bus name and exports `/org/freedesktop/Notifications` when that name is available. Waydroid's host-side notification manager connects to this standard interface and forwards Android notifications through it; native Linux applications use the same endpoint. Aether stores incoming notifications in its existing list model, preserving the QML notification-centre interface. The initial server supports plain-text bodies, replacement IDs, close requests, and expiry. Rich body markup and interactive action UI are not advertised. If another notification daemon already owns the bus name, Aether records `name-in-use` and cannot receive desktop notifications until that conflict is resolved. This implementation has not been compiled or runtime-tested. The Wayland `app_id` namespace is a Waydroid convention, not an authenticated identity: another local Wayland client could imitate it. Aether uses it only for UI-level window association and must not use it as a security or permission boundary.
+Aether's `NotificationService` now owns the freedesktop `org.freedesktop.Notifications` session-bus name and exports `/org/freedesktop/Notifications` when that name is available. Waydroid's host-side notification manager connects to this standard interface and forwards Android notifications through it; native Linux applications use the same endpoint. Aether stores incoming notifications in its existing list model, preserving the QML notification-centre interface. The initial server supports plain-text bodies, replacement IDs, close requests, expiry, and action invocation. The QML notification centre displays action buttons and per-item dismissal; rich body markup is not advertised. If another notification daemon already owns the bus name, Aether records `name-in-use` and cannot receive desktop notifications until that conflict is resolved. This implementation has not been compiled or runtime-tested. The Wayland `app_id` namespace is a Waydroid convention, not an authenticated identity: another local Wayland client could imitate it. Aether uses it only for UI-level window association and must not use it as a security or permission boundary.
+
+
+## 13. Initial host desktop service slices
+
+The shell now exposes three additional in-process session services:
+
+- `AudioService`: uses `wpctl` for default sink/source volume and mute, with `pactl` fallback; `pactl` enumerates and selects default input/output devices. The first Settings and Quick Settings controls are wired to it. The implementation currently performs synchronous utility calls and needs asynchronous refactoring, hotplug handling, and runtime validation before production use.
+- `ClipboardService`: wraps the Qt text clipboard and retains up to 30 non-empty text entries in memory. It notifies QML of clipboard changes, supports restoring an entry, and can clear the history. It does not persist clipboard contents and does not yet exchange data with Android.
+- `FileService`: provides a model of readable items under the user's home directory. The Files window can browse folders, create folders, rename items, move items to the desktop trash through `gio`, and open files with registered host applications. It deliberately does not expose arbitrary system paths. File pickers, removable volumes, file/URL launch contexts, and Android shared storage remain future work.
+
+These services are not separate privileged daemons. They are unprivileged in-process adapters used by the existing Qt/QML shell. The current source milestone is not an operational desktop release: compilation, QML validation, service integration tests, and target-system testing are still pending.
