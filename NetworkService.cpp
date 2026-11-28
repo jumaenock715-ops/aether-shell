@@ -344,6 +344,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     const bool enterpriseAvailable = (securityFlags & keyMgmt8021x) != 0;
     const bool enterprise = enterpriseAuth && (enterpriseAvailable || hidden);
     const bool wep = securityFlags == 0 && (accessPointFlags & 0x00000001u);
+    const bool hiddenPersonal = hidden && !enterprise && !password.isEmpty();
     const bool open = securityFlags == 0 && !wep && password.isEmpty() && !enterprise;
 
     if (wep) {
@@ -361,7 +362,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
         emit operationFinished(false, m_lastError);
         return;
     }
-    if (!open && !sae && !psk) {
+    if (!open && !enterprise && !hiddenPersonal && !sae && !psk) {
         setError(QStringLiteral("This Wi-Fi security type is not supported yet (for example, legacy WEP)."));
         emit operationFinished(false, m_lastError);
         return;
@@ -377,7 +378,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
                            || (ch.toLower() >= QLatin1Char('a')
                                && ch.toLower() <= QLatin1Char('f')); });
     if (!open && !enterprise && (password.size() < 8 || password.size() > 63)
-        && !(psk && isHexPsk)) {
+        && !((psk || hiddenPersonal) && isHexPsk)) {
         setError(QStringLiteral("Enter an 8–63 character Wi-Fi passphrase, or a 64-character hexadecimal WPA pre-shared key."));
         emit operationFinished(false, m_lastError);
         return;
