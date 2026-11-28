@@ -47,12 +47,13 @@ void WaydroidBridgeService::discoverBridgeDirectory()
     if (QFileInfo(userRoot).isDir()) roots.append(userRoot);
     if (QFileInfo(systemRoot).isDir()) roots.append(systemRoot);
 
+    bool permissionDenied = false;
     for (const QString &root : roots) {
         const QString candidate = QDir(root).filePath(kBridgeRelative);
         if (QFileInfo(candidate).isDir() && QFileInfo(candidate).isReadable()) {
             QTemporaryFile permissionProbe(QDir(candidate).filePath(QStringLiteral(".aether-probe-XXXXXX")));
             if (!permissionProbe.open()) {
-                setStatus(QStringLiteral("storage-permission-denied"));
+                permissionDenied = true;
                 continue;
             }
             permissionProbe.close();
@@ -68,8 +69,8 @@ void WaydroidBridgeService::discoverBridgeDirectory()
         }
     }
     m_bridgeDirectory.clear();
-    if (m_status != QStringLiteral("storage-permission-denied"))
-        setStatus(QStringLiteral("waiting-for-android-companion"));
+    setStatus(permissionDenied ? QStringLiteral("storage-permission-denied")
+                               : QStringLiteral("waiting-for-android-companion"));
 }
 
 void WaydroidBridgeService::poll()
