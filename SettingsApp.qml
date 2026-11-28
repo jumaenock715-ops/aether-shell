@@ -283,6 +283,22 @@ Item {
                 text: "Session state: " + AndroidRuntime.runtimeState
                 color: Theme.textDim; font.pixelSize: 12
             }
+            Text {
+                text: "Aether Android bridge: " + AndroidBridge.status
+                color: AndroidBridge.available ? "#3DDC97" : Theme.textDim
+                font.pixelSize: 12
+            }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap
+                text: AndroidBridge.available
+                    ? "The companion bridge folder is detected. Android notifications are forwarded when notification access is granted in Aether Bridge. Text clipboard sync works while the companion activity is open."
+                    : "Install the Aether Bridge companion APK in Waydroid, launch it, and grant notification access. Clipboard synchronisation is foreground-only because Android restricts background clipboard access."
+                color: Theme.textDim; font.pixelSize: 11
+            }
+            Text {
+                text: "Android notifications forwarded: " + AndroidBridge.forwardedNotifications
+                color: Theme.textDim; font.pixelSize: 11
+            }
             Row {
                 spacing: 10
                 Rectangle {
