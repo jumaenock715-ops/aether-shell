@@ -1,6 +1,7 @@
 #include "AudioService.h"
 #include <QProcess>
 #include <QRegularExpression>
+#include <QVariantMap>
 
 AudioService::AudioService(QObject *parent) : QObject(parent) { refresh(); }
 
