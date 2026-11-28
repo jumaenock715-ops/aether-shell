@@ -39,6 +39,7 @@ public:
     Q_INVOKABLE bool selectInput(const QString &name);
     Q_INVOKABLE bool setStreamVolume(uint streamId, int percent);
     Q_INVOKABLE bool setStreamMuted(uint streamId, bool muted);
+    Q_INVOKABLE bool moveStreamToOutput(uint streamId, const QString &outputName);
 signals:
     void changed();
     void operationFailed(const QString &operation, const QString &reason);
