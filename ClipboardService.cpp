@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QMimeData>
+#include <QPixmap>
 #include <QStandardPaths>
 
 ClipboardService::ClipboardService(QObject *parent) : QAbstractListModel(parent)
@@ -55,6 +56,8 @@ void ClipboardService::captureClipboard()
     entry.time = QDateTime::currentDateTime().toString(QStringLiteral("hh:mm"));
     if (mime->hasImage()) {
         entry.image = qvariant_cast<QImage>(mime->imageData());
+        if (entry.image.isNull())
+            entry.image = qvariant_cast<QPixmap>(mime->imageData()).toImage();
         if (entry.image.isNull()) return;
         entry.kind = QStringLiteral("image");
         entry.text = QStringLiteral("Copied image");
