@@ -92,27 +92,26 @@ Rectangle {
         }
     }
 
-    // Content
-    readonly property bool isSettingsApp: {
-        const id = root.appId.toLowerCase()
-        const name = root.title.toLowerCase()
-        return id === "settings" || id.indexOf("settings") >= 0 ||
-               name === "settings" || name === "system settings"
-    }
-    Loader {
-        id: appContent
+    // Application content is selected by the stable built-in app ID.
+    // Avoid Loader/sourceComponent routing here: Settings must never fall
+    // through to the generic placeholder because of a title or catalogue alias.
+    SettingsApp {
+        id: settingsContent
         anchors { left: parent.left; right: parent.right; top: bar.bottom; bottom: parent.bottom }
-        sourceComponent: root.isSettingsApp ? settingsComp :
-                         (root.appId === "files" ? filesComp : placeholderComp)
+        visible: root.appId === "settings"
     }
-    Component { id: settingsComp;    SettingsApp {} }
-    Component { id: filesComp; FilesApp {} }
-    Component {
-        id: placeholderComp
-        PlaceholderApp {
-            appName: root.title
-            tint: Apps.byId(root.appId) ? Apps.byId(root.appId).tint : Theme.accent
-        }
+
+    FilesApp {
+        id: filesContent
+        anchors { left: parent.left; right: parent.right; top: bar.bottom; bottom: parent.bottom }
+        visible: root.appId === "files"
+    }
+
+    PlaceholderApp {
+        anchors { left: parent.left; right: parent.right; top: bar.bottom; bottom: parent.bottom }
+        visible: root.appId !== "settings" && root.appId !== "files"
+        appName: root.title
+        tint: Apps.byId(root.appId) ? Apps.byId(root.appId).tint : Theme.accent
     }
 
     // Click anywhere in the window to focus it
