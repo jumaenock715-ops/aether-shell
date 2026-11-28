@@ -93,6 +93,8 @@ public final class MainActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         clipboard = (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+        File bridgeRoot = getExternalFilesDir(null);
+        if (bridgeRoot != null) bridgeRoot.mkdirs();
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(32, 48, 32, 32);
