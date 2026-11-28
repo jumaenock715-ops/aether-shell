@@ -73,7 +73,7 @@ LinuxHardwareService::LinuxHardwareService(QObject *parent) : QObject(parent)
         setBluetoothScanning(false);
         refresh();
         static const QRegularExpression failurePattern(
-            QStringLiteral("(^|\\n)(Failed|Error|No default controller|not available|not ready)\\b"),
+            QStringLiteral("(^|\n)(Failed|Error|No default controller|not available|not ready)\\b"),
             QRegularExpression::CaseInsensitiveOption);
         if (exitStatus != QProcess::NormalExit || exitCode != 0 || failurePattern.match(output).hasMatch()) {
             setError(output.isEmpty() ? QStringLiteral("Bluetooth discovery failed.") : output);
@@ -96,8 +96,8 @@ LinuxHardwareService::LinuxHardwareService(QObject *parent) : QObject(parent)
     m_bluetoothPairingTimeout->setSingleShot(true);
     connect(m_bluetoothPairingTimeout, &QTimer::timeout, this, [this]() {
         if (m_bluetoothPairingProcess->state() != QProcess::NotRunning) {
-            m_bluetoothPairingProcess->write("no\\n");
-            m_bluetoothPairingProcess->write("quit\\n");
+            m_bluetoothPairingProcess->write("no\n");
+            m_bluetoothPairingProcess->write("quit\n");
             m_bluetoothPairingProcess->terminate();
             QTimer::singleShot(1500, m_bluetoothPairingProcess, &QProcess::kill);
         }
@@ -105,7 +105,7 @@ LinuxHardwareService::LinuxHardwareService(QObject *parent) : QObject(parent)
     });
     connect(m_bluetoothPairingProcess, &QProcess::readyReadStandardOutput, this, [this]() {
         m_bluetoothPairingBuffer += m_bluetoothPairingProcess->readAllStandardOutput();
-        const QList<QByteArray> lines = m_bluetoothPairingBuffer.split('\\n');
+        const QList<QByteArray> lines = m_bluetoothPairingBuffer.split('\n');
         m_bluetoothPairingBuffer = lines.isEmpty() ? QByteArray() : lines.last();
         for (int i = 0; i + 1 < lines.size(); ++i)
             processBluetoothPairingOutput(QString::fromUtf8(lines.at(i)).trimmed());
@@ -120,9 +120,9 @@ LinuxHardwareService::LinuxHardwareService(QObject *parent) : QObject(parent)
             QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, [this](int exitCode, QProcess::ExitStatus exitStatus) {
         m_bluetoothPairingTimeout->stop();
+        if (!m_bluetoothPairing) return;
         const bool success = m_bluetoothPairingSucceeded
             && exitStatus == QProcess::NormalExit && exitCode == 0;
-        const QString address = m_bluetoothPairingAddress;
         finishBluetoothPairing(success, success
             ? QStringLiteral("Bluetooth device paired successfully.")
             : QStringLiteral("Bluetooth pairing failed or was rejected."));
@@ -133,11 +133,10 @@ LinuxHardwareService::LinuxHardwareService(QObject *parent) : QObject(parent)
             setError(QStringLiteral("Bluetooth pairing failed or was rejected."));
             refresh();
         }
-        Q_UNUSED(address);
     });
     connect(m_bluetoothPairingProcess, &QProcess::errorOccurred, this,
             [this](QProcess::ProcessError error) {
-        if (error != QProcess::FailedToStart) return;
+        if (error != QProcess::FailedToStart || !m_bluetoothPairing) return;
         m_bluetoothPairingTimeout->stop();
         finishBluetoothPairing(false, QStringLiteral("Could not start bluetoothctl for pairing."));
         setError(QStringLiteral("Could not start bluetoothctl for pairing. Check the BlueZ installation."));
@@ -171,7 +170,7 @@ bool LinuxHardwareService::run(const QString &program, const QStringList &argume
     const QString standardError = QString::fromUtf8(process.readAllStandardError()).trimmed();
     const QString output = standardOutput + QLatin1Char('\n') + standardError;
     static const QRegularExpression failurePattern(
-        QStringLiteral("(^|\\n)(Failed|Error|No default controller|not available|not ready)\\b"),
+        QStringLiteral("(^|\n)(Failed|Error|No default controller|not available|not ready)\\b"),
         QRegularExpression::CaseInsensitiveOption);
     const bool reportedFailure = failurePattern.match(output).hasMatch();
     if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0 || reportedFailure) {
@@ -418,7 +417,7 @@ void LinuxHardwareService::processBluetoothPairingOutput(const QString &output)
     if (line.contains(QStringLiteral("Pairing successful"), Qt::CaseInsensitive)) {
         m_bluetoothPairingSucceeded = true;
         m_bluetoothPairingTimeout->stop();
-        m_bluetoothPairingProcess->write("quit\\n");
+        m_bluetoothPairingProcess->write("quit\n");
         return;
     }
     if (line.contains(QStringLiteral("Failed to pair"), Qt::CaseInsensitive)
@@ -426,7 +425,7 @@ void LinuxHardwareService::processBluetoothPairingOutput(const QString &output)
         || line.contains(QStringLiteral("Authentication Canceled"), Qt::CaseInsensitive)) {
         m_bluetoothPairingSucceeded = false;
         m_bluetoothPairingTimeout->stop();
-        m_bluetoothPairingProcess->write("quit\\n");
+        m_bluetoothPairingProcess->write("quit\n");
         setBluetoothPairingPrompt({});
         return;
     }
@@ -495,9 +494,9 @@ void LinuxHardwareService::pairBluetooth(const QString &address)
         return;
     }
     m_bluetoothPairingTimeout->start(60000);
-    m_bluetoothPairingProcess->write("agent KeyboardDisplay\\n");
-    m_bluetoothPairingProcess->write("default-agent\\n");
-    m_bluetoothPairingProcess->write(QStringLiteral("pair %1\\n").arg(m_bluetoothPairingAddress).toUtf8());
+    m_bluetoothPairingProcess->write("agent KeyboardDisplay\n");
+    m_bluetoothPairingProcess->write("default-agent\n");
+    m_bluetoothPairingProcess->write(QStringLiteral("pair %1\n").arg(m_bluetoothPairingAddress).toUtf8());
 }
 
 void LinuxHardwareService::respondBluetoothPairing(const QString &pin)
@@ -507,7 +506,7 @@ void LinuxHardwareService::respondBluetoothPairing(const QString &pin)
         setError(QStringLiteral("Enter a valid Bluetooth PIN or passkey when requested."));
         return;
     }
-    m_bluetoothPairingProcess->write(pin.toUtf8() + "\\n");
+    m_bluetoothPairingProcess->write(pin.toUtf8() + "\n");
     setBluetoothPairingPrompt({});
 }
 
@@ -515,10 +514,10 @@ void LinuxHardwareService::confirmBluetoothPairing(bool accepted)
 {
     if (!m_bluetoothPairing || (m_bluetoothPairingPrompt != QStringLiteral("confirm")
                                 && m_bluetoothPairingPrompt != QStringLiteral("authorize"))) return;
-    m_bluetoothPairingProcess->write(accepted ? "yes\\n" : "no\\n");
+    m_bluetoothPairingProcess->write(accepted ? "yes\n" : "no\n");
     setBluetoothPairingPrompt({});
     if (!accepted) {
-        m_bluetoothPairingProcess->write("quit\\n");
+        m_bluetoothPairingProcess->write("quit\n");
         m_bluetoothPairingTimeout->stop();
     }
 }
@@ -526,8 +525,8 @@ void LinuxHardwareService::confirmBluetoothPairing(bool accepted)
 void LinuxHardwareService::cancelBluetoothPairing()
 {
     if (!m_bluetoothPairing) return;
-    m_bluetoothPairingProcess->write("no\\n");
-    m_bluetoothPairingProcess->write("quit\\n");
+    m_bluetoothPairingProcess->write("no\n");
+    m_bluetoothPairingProcess->write("quit\n");
     m_bluetoothPairingTimeout->stop();
     m_bluetoothPairingProcess->terminate();
     QTimer::singleShot(1500, m_bluetoothPairingProcess, &QProcess::kill);
