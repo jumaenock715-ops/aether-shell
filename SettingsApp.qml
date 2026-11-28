@@ -10,7 +10,7 @@ Item {
         }
     }
     property int page: 0
-    readonly property var pages: ["Appearance", "Display", "Network", "Android", "About"]
+    readonly property var pages: ["Appearance", "Display", "Network", "Audio", "Android", "About"]
     readonly property var accents: ["#6D4AFF", "#14B8D4", "#3DDC97", "#FF5C7A", "#FFB020"]
 
     Rectangle {
@@ -90,7 +90,7 @@ Item {
 
         // Android runtime
         Column {
-            visible: root.page === 3; spacing: 14; width: parent.width
+            visible: root.page === 4; spacing: 14; width: parent.width
             Text { text: "Android runtime"; color: Theme.text; font.pixelSize: 18; font.bold: true }
             Text {
                 width: parent.width; wrapMode: Text.WordWrap
@@ -186,7 +186,7 @@ Item {
 
         // About
         Column {
-            visible: root.page === 4; spacing: 10; width: parent.width
+            visible: root.page === 5; spacing: 10; width: parent.width
             Text { text: "About"; color: Theme.text; font.pixelSize: 18; font.bold: true }
             Text { text: "Aether Shell 0.1 (prototype)"; color: Theme.text; font.pixelSize: 14 }
             Text { text: "Qt " + Qt.platform.os + " build"; color: Theme.textDim; font.pixelSize: 12 }
