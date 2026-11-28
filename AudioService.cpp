@@ -113,6 +113,7 @@ void AudioService::refreshStreams()
             {QStringLiteral("id"), id}, {QStringLiteral("name"), name},
             {QStringLiteral("binary"), binary}, {QStringLiteral("volume"), percent},
             {QStringLiteral("muted"), stream.value(QStringLiteral("mute")).toBool()},
+            {QStringLiteral("sink"), stream.value(QStringLiteral("sink")).toVariant().toUInt()},
             {QStringLiteral("android"), android},
             {QStringLiteral("provider"), android ? QStringLiteral("Waydroid audio session")
                                                   : QStringLiteral("Linux application")}
@@ -218,4 +219,16 @@ bool AudioService::setStreamMuted(uint streamId, bool muted)
         emit operationFailed(QStringLiteral("set-stream-mute"), QStringLiteral("The audio stream disappeared or could not be controlled.")); return false;
     }
     refresh(); return true;
+}
+
+bool AudioService::moveStreamToOutput(uint streamId, const QString &outputName)
+{
+    if (!streamId || outputName.isEmpty() ||
+        !run(QStringLiteral("pactl"), {QStringLiteral("move-sink-input"),
+            QString::number(streamId), outputName})) {
+        emit operationFailed(QStringLiteral("move-stream"), QStringLiteral("Could not move this application stream to the selected output device."));
+        return false;
+    }
+    refresh();
+    return true;
 }
