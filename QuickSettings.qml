@@ -132,7 +132,7 @@ Item {
                         MouseArea { anchors.fill: parent; onClicked: Clipboard.restore(clipboardEntry.index) }
                     }
                 }
-                Text { visible: Clipboard.count === 0; text: "No copied text yet"; color: Theme.textDim; font.pixelSize: 10 }
+                Text { visible: Clipboard.count === 0; text: "No clipboard history yet"; color: Theme.textDim; font.pixelSize: 10 }
             }
 
             Text {
