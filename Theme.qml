@@ -10,7 +10,7 @@ QtObject {
     readonly property color surface: dark ? Qt.rgba(0.12, 0.15, 0.23, 0.94) : Qt.rgba(1, 1, 1, 0.82)
     readonly property color surfaceStrong: dark ? "#1B2130" : "#FFFFFF"
     readonly property color panel: dark ? Qt.rgba(0.10, 0.13, 0.21, 0.96) : Qt.rgba(0.97, 0.98, 1.0, 0.97)
-    readonly property color launcherPanel: dark ? "#202738" : "#F7F8FC"
+    readonly property color launcherGlass: dark ? Qt.rgba(0.075, 0.09, 0.15, 0.76) : Qt.rgba(0.97, 0.98, 1.0, 0.72)
     readonly property color taskbar: dark ? Qt.rgba(0.10, 0.13, 0.20, 0.94) : Qt.rgba(0.97, 0.98, 1.0, 0.91)
     readonly property color border: dark ? Qt.rgba(1, 1, 1, 0.13) : Qt.rgba(0.12, 0.16, 0.24, 0.10)
     readonly property color text: dark ? "#F4F6FB" : "#1B2332"
