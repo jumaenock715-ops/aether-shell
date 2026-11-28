@@ -10,7 +10,7 @@ The shell is a source-level prototype. Some desktop functions now call host sess
 - Quick settings: demonstration Wi-Fi/Bluetooth toggles, dark mode, do not disturb, shell brightness dimming, audio output/microphone controls, and recent clipboard text
 - Notification centre with toast popups and "Send test notification"
 - Floating, draggable app windows (close, maximise, double-click title bar, focus/raise)
-- Settings app: dark/light theme, accent colour, display, network demonstrations, audio devices and levels, Android runtime session controls, about
+- Settings app: dark/light theme, accent colour, display, network demonstrations, notification status/preferences, audio devices and levels, Android runtime session controls, about
 - Files app: home-folder browsing, folder creation, rename, trash, and opening files with registered desktop applications
 
 ## Session manager
