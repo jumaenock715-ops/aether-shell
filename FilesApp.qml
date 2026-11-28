@@ -10,7 +10,7 @@ Item {
         id: openPicker
         title: "Open a file"
         fileMode: FileDialog.OpenFile
-        onAccepted: FileService.openFile(selectedFile.toLocalFile())
+        onAccepted: FileService.openSelectedFile(selectedFile.toLocalFile())
     }
 
     Column {
