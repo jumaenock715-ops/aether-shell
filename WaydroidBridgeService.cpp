@@ -55,6 +55,7 @@ void WaydroidBridgeService::discoverBridgeDirectory()
                 m_lastHostClipboard.clear();
             }
             setStatus(QStringLiteral("connected"));
+            if (m_clipboard) writeHostClipboard(m_clipboard->currentText());
             return;
         }
     }
