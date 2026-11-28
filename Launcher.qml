@@ -34,22 +34,21 @@ Item {
             anchors.margins: 26
             spacing: 18
 
-            Row {
-                width: parent.width
-                spacing: 12
+            Item {
+                width: parent.width; height: 42
                 Rectangle {
-                    width: 42; height: 42; radius: 14
+                    x: 0; y: 0; width: 42; height: 42; radius: 14
                     color: Theme.accent
                     Text { anchors.centerIn: parent; text: "A"; color: "white"; font.pixelSize: 23; font.bold: true }
                 }
                 Column {
-                    anchors.verticalCenter: parent.verticalCenter
+                    x: 54; anchors.verticalCenter: parent.verticalCenter
                     spacing: 2
                     Text { text: "Aether"; color: Theme.text; font.pixelSize: 20; font.bold: true }
                     Text { text: "Your workspace"; color: Theme.textDim; font.pixelSize: 11 }
                 }
-                Item { width: 1; height: 1 }
                 Text {
+                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
                     text: "×"; color: Theme.textDim; font.pixelSize: 22
                     MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: root.closeRequested() }
                 }
