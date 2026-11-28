@@ -10,9 +10,9 @@ Item {
         }
     }
     property int page: 0
-    readonly property var pages: ["Appearance", "Display", "Network", "Notifications", "Audio", "Android", "About"]
-    readonly property var pageDescriptions: ["Personalise the Aether experience", "Brightness and visual behaviour", "Wireless connectivity controls", "Alerts, quiet mode and delivery", "Output, microphone and devices", "Android app compatibility layer", "Version and project information"]
-    readonly property var pageGroups: ["PERSONALISATION", "PERSONALISATION", "CONNECTIONS", "PERSONALISATION", "DEVICE", "DEVICE", "SYSTEM"]
+    readonly property var pages: ["Appearance", "Display", "Network", "Notifications", "Audio", "Android", "About", "Phone", "Wi-Fi & hotspot", "More connections", "Users & accounts", "Security", "Storage", "Memory", "System information", "App management", "Battery lab"]
+    readonly property var pageDescriptions: ["Personalise the Aether experience", "Brightness and visual behaviour", "Network overview", "Alerts, quiet mode and delivery", "Output, microphone and devices", "Android app compatibility layer", "Version and project information", "SIM, mobile network and calling", "Wi-Fi networks, hotspot and tethering", "USB, OTG, Bluetooth and wireless display", "Device users and online accounts", "Screen lock, permissions and credentials", "Internal storage and external media", "RAM usage and memory pressure", "Hardware, software and kernel details", "Installed apps, permissions and defaults", "Battery health, usage and charging"]
+    readonly property var pageGroups: ["PERSONALISATION", "PERSONALISATION", "CONNECTIONS", "PERSONALISATION", "DEVICE", "DEVICE", "SYSTEM", "CONNECTIONS", "CONNECTIONS", "CONNECTIONS", "ACCOUNTS", "SECURITY", "DEVICE", "DEVICE", "SYSTEM", "APPS", "DEVICE"]
     readonly property var accents: ["#6D4AFF", "#14B8D4", "#3DDC97", "#FF5C7A", "#FFB020"]
 
     Rectangle {
@@ -316,6 +316,128 @@ Item {
             Text { text: "Qt " + Qt.platform.os + " build"; color: Theme.textDim; font.pixelSize: 12 }
             Text { width: parent.width; wrapMode: Text.WordWrap; color: Theme.textDim; font.pixelSize: 12
                    text: "First milestone of Project Aether OS: a desktop shell designed to become the real system shell." }
+        }
+        // Expanded device settings pages. Hardware-dependent values are not fabricated.
+        Flickable {
+            visible: root.page >= 7
+            anchors.fill: parent
+            contentWidth: width
+            contentHeight: extraPages.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            Column {
+                id: extraPages
+                width: parent.width
+                spacing: 14
+                Text { text: root.pages[root.page]; color: Theme.text; font.pixelSize: 25; font.bold: true }
+                Text {
+                    width: parent.width
+                    text: root.pageDescriptions[root.page]
+                    color: Theme.textDim; font.pixelSize: 12; wrapMode: Text.WordWrap
+                }
+                Rectangle {
+                    visible: root.page === 7
+                    width: parent.width; height: 96; radius: 14
+                    color: Theme.panel; border.color: Theme.border
+                    Column {
+                        anchors.fill: parent; anchors.margins: 14; spacing: 6
+                        Text { text: "SIM & mobile network"; color: Theme.text; font.pixelSize: 14; font.bold: true }
+                        Text {
+                            width: parent.width; wrapMode: Text.WordWrap
+                            text: "SIM status, mobile data, preferred network, roaming, access point names and calling services will be managed here when a modem service is integrated."
+                            color: Theme.textDim; font.pixelSize: 11
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: root.page === 8
+                    width: parent.width; height: 112; radius: 14
+                    color: Theme.panel; border.color: Theme.border
+                    Column {
+                        anchors.fill: parent; anchors.margins: 14; spacing: 8
+                        Row {
+                            width: parent.width
+                            Text { text: "Wi-Fi"; color: Theme.text; font.pixelSize: 14; font.bold: true }
+                            Item { width: 1; height: 1 }
+                            Toggle { checked: System.wifi; onToggled: (v) => System.wifi = v }
+                        }
+                        Text {
+                            width: parent.width; wrapMode: Text.WordWrap
+                            text: "Prototype switch only. Network scanning, saved networks, authentication, hotspot and tethering need NetworkManager and modem integration."
+                            color: Theme.textDim; font.pixelSize: 11
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: root.page === 9
+                    width: parent.width; height: 190; radius: 14
+                    color: Theme.panel; border.color: Theme.border
+                    Column {
+                        anchors.fill: parent; anchors.margins: 14; spacing: 9
+                        Text { text: "Connection options"; color: Theme.text; font.pixelSize: 14; font.bold: true }
+                        Repeater {
+                            model: ["USB connection mode", "USB OTG / host mode", "Bluetooth devices", "Wireless display / casting", "Ethernet and tethering"]
+                            delegate: Text {
+                                required property string modelData
+                                text: modelData + "   ·   Service integration pending"
+                                color: Theme.textDim; font.pixelSize: 12
+                            }
+                        }
+                    }
+                }
+                Repeater {
+                    model: root.page === 10 ? [
+                        ["Device users", "User profiles, guest sessions and multi-user switching"],
+                        ["Online accounts", "Account providers, sync status and account permissions"]
+                    ] : root.page === 11 ? [
+                        ["Screen lock", "PIN, password, pattern and automatic lock"],
+                        ["Biometrics", "Fingerprint and face authentication, when supported"],
+                        ["Permissions", "App access to location, camera, microphone and files"],
+                        ["Credentials", "Certificates, keys and trusted credentials"]
+                    ] : root.page === 12 ? [
+                        ["Internal storage", "Used space, available space and category breakdown"],
+                        ["External storage", "SD cards, USB drives and mounted volumes"],
+                        ["Storage management", "Temporary files, downloads and cleanup"]
+                    ] : root.page === 13 ? [
+                        ["RAM", "Live memory usage, available memory and memory pressure"],
+                        ["Memory management", "Per-process usage and background app limits"],
+                        ["Swap and zRAM", "Swap space and compressed-memory status"]
+                    ] : root.page === 14 ? [
+                        ["Hardware", "CPU, architecture, graphics, memory and device identifiers"],
+                        ["Software", "Aether OS version, Debian base, Qt version and build"],
+                        ["Kernel", "Linux kernel release, boot parameters and uptime"]
+                    ] : root.page === 15 ? [
+                        ["Installed applications", "Browse, launch, uninstall and inspect installed apps"],
+                        ["App permissions", "Review and manage application access"],
+                        ["Default applications", "Choose browser, file manager and other defaults"],
+                        ["Android applications", "Manage Android packages through the Android runtime"]
+                    ] : root.page === 16 ? [
+                        ["Battery status", "Charge level, charging state and power source"],
+                        ["Battery health", "Capacity, cycle count and health estimates when exposed by hardware"],
+                        ["Power usage", "Application and system energy consumption"],
+                        ["Power modes", "Balanced, performance and battery saver policies"]
+                    ] : []
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: extraPages.width; height: 70; radius: 12
+                        color: Theme.panel; border.color: Theme.border
+                        Column {
+                            anchors.fill: parent; anchors.margins: 12; spacing: 5
+                            Text { text: modelData[0]; color: Theme.text; font.pixelSize: 13; font.bold: true }
+                            Text {
+                                width: parent.width; wrapMode: Text.WordWrap
+                                text: modelData[1]; color: Theme.textDim; font.pixelSize: 11
+                            }
+                        }
+                    }
+                }
+                Text {
+                    visible: root.page >= 10
+                    width: parent.width; wrapMode: Text.WordWrap
+                    text: "This page defines the Settings structure. Live values and actions will be connected as Aether's device services are implemented; unavailable hardware information is not fabricated."
+                    color: Theme.textDim; font.pixelSize: 11
+                }
+            }
         }
     }
 }
