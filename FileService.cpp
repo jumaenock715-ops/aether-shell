@@ -4,6 +4,7 @@
 #include <QFileInfo>
 #include <QUrl>
 #include <QRegularExpression>
+#include <QProcess>
 
 FileService::FileService(QObject *parent) : QAbstractListModel(parent), m_currentPath(QDir::homePath())
 {
@@ -94,6 +95,25 @@ bool FileService::renameEntry(const QString &oldName, const QString &newName)
     }
     refresh(); return true;
 }
+bool FileService::trashEntry(const QString &path)
+{
+    const QFileInfo info(path);
+    const QString canonical = info.canonicalFilePath();
+    if (!info.exists() || canonical.isEmpty() || !isInsideHome(canonical) ||
+        canonical == QDir::cleanPath(QDir::homePath())) {
+        emit operationFailed(QStringLiteral("trash"), QStringLiteral("That item cannot be moved to the trash."));
+        return false;
+    }
+    const int result = QProcess::execute(QStringLiteral("gio"),
+                                         {QStringLiteral("trash"), canonical});
+    if (result != 0) {
+        emit operationFailed(QStringLiteral("trash"), QStringLiteral("Could not move the item to the desktop trash. The gio utility may be unavailable."));
+        return false;
+    }
+    refresh();
+    return true;
+}
+
 bool FileService::openFile(const QString &path)
 {
     const QFileInfo info(path);
