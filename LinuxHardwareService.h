@@ -33,6 +33,8 @@ class LinuxHardwareService final : public QObject
     Q_PROPERTY(QVariantList audioInputs READ audioInputs NOTIFY audioDevicesChanged)
     Q_PROPERTY(QString audioOutput READ audioOutput NOTIFY audioDevicesChanged)
     Q_PROPERTY(QString audioInput READ audioInput NOTIFY audioDevicesChanged)
+    Q_PROPERTY(QVariantList audioOutputPorts READ audioOutputPorts NOTIFY audioDevicesChanged)
+    Q_PROPERTY(QString audioOutputPort READ audioOutputPort NOTIFY audioDevicesChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
 
 public:
@@ -59,6 +61,8 @@ public:
     QVariantList audioInputs() const { return m_audioInputs; }
     QString audioOutput() const { return m_audioOutput; }
     QString audioInput() const { return m_audioInput; }
+    QVariantList audioOutputPorts() const { return m_audioOutputPorts; }
+    QString audioOutputPort() const { return m_audioOutputPort; }
     QString lastError() const { return m_lastError; }
 
     Q_INVOKABLE void refresh();
@@ -77,6 +81,7 @@ public:
     Q_INVOKABLE void setMuted(bool muted);
     Q_INVOKABLE void setAudioOutput(const QString &name);
     Q_INVOKABLE void setAudioInput(const QString &name);
+    Q_INVOKABLE void setAudioOutputPort(const QString &name);
     Q_INVOKABLE void suspend();
     Q_INVOKABLE void restart();
     Q_INVOKABLE void shutdown();
@@ -129,5 +134,7 @@ private:
     QVariantList m_audioInputs;
     QString m_audioOutput;
     QString m_audioInput;
+    QVariantList m_audioOutputPorts;
+    QString m_audioOutputPort;
     QString m_lastError;
 };
