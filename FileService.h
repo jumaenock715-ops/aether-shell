@@ -24,6 +24,7 @@ public:
     Q_INVOKABLE bool goUp();
     Q_INVOKABLE bool createDirectory(const QString &name);
     Q_INVOKABLE bool renameEntry(const QString &oldName, const QString &newName);
+    Q_INVOKABLE bool trashEntry(const QString &path);
     Q_INVOKABLE bool openFile(const QString &path);
     Q_INVOKABLE void refresh();
 signals:
