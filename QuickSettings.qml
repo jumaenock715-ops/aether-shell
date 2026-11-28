@@ -108,12 +108,13 @@ Item {
                     delegate: Rectangle {
                         id: clipboardEntry
                         required property string text
+                        required property string kind
                         required property int index
                         width: ListView.view.width; height: 30; radius: 10; color: Theme.surface
                         Text {
                             anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
                             verticalAlignment: Text.AlignVCenter
-                            text: clipboardEntry.text; color: Theme.text; font.pixelSize: 11
+                            text: (clipboardEntry.kind === "image" ? "▧  " : clipboardEntry.kind === "files" ? "▤  " : "") + clipboardEntry.text; color: Theme.text; font.pixelSize: 11
                             elide: Text.ElideRight
                         }
                         MouseArea { anchors.fill: parent; onClicked: Clipboard.restore(clipboardEntry.index) }
@@ -124,7 +125,7 @@ Item {
 
             Text {
                 width: parent.width; wrapMode: Text.WordWrap
-                text: "Wi-Fi, Bluetooth and brightness are still demonstration controls. Audio and clipboard use session services."
+                text: "Wi-Fi and Bluetooth remain demonstration controls. Audio now tracks application streams and device changes; clipboard history retains text, images and file URLs. Android clipboard synchronisation requires the Android-side companion bridge."
                 color: Theme.textDim; font.pixelSize: 10
             }
         }
