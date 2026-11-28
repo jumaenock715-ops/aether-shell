@@ -394,11 +394,32 @@ void LinuxHardwareService::refresh()
                 continue;
             const QString description = object.value(QStringLiteral("description")).toString(name);
             const int index = object.value(QStringLiteral("index")).toInt(-1);
+            QVariantList ports;
+            QString activePort;
+            const QJsonValue active = object.value(QStringLiteral("active_port"));
+            if (active.isObject())
+                activePort = active.toObject().value(QStringLiteral("name")).toString();
+            const QJsonValue portValues = object.value(QStringLiteral("ports"));
+            if (portValues.isArray()) {
+                for (const QJsonValue &portValue : portValues.toArray()) {
+                    if (!portValue.isObject()) continue;
+                    const QJsonObject port = portValue.toObject();
+                    const QString portName = port.value(QStringLiteral("name")).toString();
+                    if (portName.isEmpty()) continue;
+                    ports.append(QVariantMap{
+                        {QStringLiteral("name"), portName},
+                        {QStringLiteral("description"), port.value(QStringLiteral("description")).toString(portName)},
+                        {QStringLiteral("available"), port.value(QStringLiteral("availability")).toString()}
+                    });
+                }
+            }
             nodes.append(QVariantMap{
                 {QStringLiteral("name"), name},
                 {QStringLiteral("description"), description},
                 {QStringLiteral("index"), index},
-                {QStringLiteral("state"), object.value(QStringLiteral("state")).toString()}
+                {QStringLiteral("state"), object.value(QStringLiteral("state")).toString()},
+                {QStringLiteral("ports"), ports},
+                {QStringLiteral("activePort"), activePort}
             });
         }
         return nodes;
@@ -409,12 +430,24 @@ void LinuxHardwareService::refresh()
         {QStringLiteral("get-default-sink")});
     const QString defaultInput = commandOutput(QStringLiteral("pactl"),
         {QStringLiteral("get-default-source")});
+    QVariantList outputPorts;
+    QString activeOutputPort;
+    for (const QVariant &item : outputs) {
+        const QVariantMap sink = item.toMap();
+        if (sink.value(QStringLiteral("name")).toString() != defaultOutput) continue;
+        outputPorts = sink.value(QStringLiteral("ports")).toList();
+        activeOutputPort = sink.value(QStringLiteral("activePort")).toString();
+        break;
+    }
     if (m_audioOutputs != outputs || m_audioInputs != inputs
-        || m_audioOutput != defaultOutput || m_audioInput != defaultInput) {
+        || m_audioOutput != defaultOutput || m_audioInput != defaultInput
+        || m_audioOutputPorts != outputPorts || m_audioOutputPort != activeOutputPort) {
         m_audioOutputs = outputs;
         m_audioInputs = inputs;
         m_audioOutput = defaultOutput;
         m_audioInput = defaultInput;
+        m_audioOutputPorts = outputPorts;
+        m_audioOutputPort = activeOutputPort;
         emit audioDevicesChanged();
     }
 }
@@ -696,6 +729,31 @@ void LinuxHardwareService::setAudioInput(const QString &name)
     }
     run(QStringLiteral("pactl"), {QStringLiteral("set-default-source"), name},
         QStringLiteral("Audio input changed"));
+}
+
+void LinuxHardwareService::setAudioOutputPort(const QString &name)
+{
+    if (name.trimmed().isEmpty()) {
+        setError(QStringLiteral("Select a valid audio output port."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    bool found = false;
+    for (const QVariant &item : m_audioOutputPorts)
+        if (item.toMap().value(QStringLiteral("name")).toString() == name) found = true;
+    if (!found) {
+        refresh();
+        for (const QVariant &item : m_audioOutputPorts)
+            if (item.toMap().value(QStringLiteral("name")).toString() == name) found = true;
+    }
+    if (!found) {
+        setError(QStringLiteral("That audio output port is no longer available."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    run(QStringLiteral("pactl"),
+        {QStringLiteral("set-sink-port"), QStringLiteral("@DEFAULT_SINK@"), name},
+        QStringLiteral("Audio output port changed"));
 }
 
 void LinuxHardwareService::setMuted(bool muted)
