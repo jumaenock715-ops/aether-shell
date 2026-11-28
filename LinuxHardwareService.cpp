@@ -89,9 +89,9 @@ bool LinuxHardwareService::run(const QString &program, const QStringList &argume
     }
     const QString standardOutput = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
     const QString standardError = QString::fromUtf8(process.readAllStandardError()).trimmed();
-    const QString output = standardOutput + QLatin1Char('\\n') + standardError;
+    const QString output = standardOutput + QLatin1Char('\n') + standardError;
     static const QRegularExpression failurePattern(
-        QStringLiteral("(^|\\\\n)(Failed|Error|No default controller|not available|not ready)\\\\b"),
+        QStringLiteral("(^|\\n)(Failed|Error|No default controller|not available|not ready)\\b"),
         QRegularExpression::CaseInsensitiveOption);
     const bool reportedFailure = failurePattern.match(output).hasMatch();
     if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0 || reportedFailure) {
