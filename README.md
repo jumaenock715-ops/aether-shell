@@ -10,7 +10,7 @@ A Qt 6 / QML desktop shell for Project Aether OS, intended to become the desktop
 - Initial NetworkManager D-Bus integration for Wi-Fi radio state and access-point discovery
 - Wi-Fi scanning from Quick Settings
 
-The Wi-Fi connection flow (credential entry and saved connection profile activation) is not implemented yet. Bluetooth, hardware brightness, battery, audio and power controls remain prototype UI and are not represented as working hardware integrations.
+Hardware controls call the host Linux services/utilities and therefore require those components to be installed and permitted. Wi-Fi credentials are sent directly to NetworkManager over the system D-Bus and are not logged by Aether. Bluetooth device commands use BlueZ bluetoothctl. Audio requires PipeWire/wpctl; backlight adjustment requires brightnessctl and suitable device permissions; power actions require systemd/polkit authorization. CI verifies compilation only; hardware behaviour still requires testing on a physical Debian/Ubuntu machine.
 
 ## Build on Ubuntu / Debian
 
@@ -39,7 +39,7 @@ Qt 6.5 or newer is required. On Wayland:
 
 - `main.cpp`: application entry point and QML context registration
 - `SystemBridge.*`: C++ bridge exposed to QML
-- `NetworkService.*`: NetworkManager D-Bus integration
+- `NetworkService.*`: NetworkManager D-Bus integration\n- `LinuxHardwareService.*`: BlueZ, PipeWire, backlight, battery and systemd integration
 - `System.qml`: shared system state; Wi-Fi values are read from the live bridge
 - Remaining QML files: desktop shell and application UI
 
