@@ -4,7 +4,7 @@ project(AetherShell VERSION 0.1 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Quick)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Quick DBus)
 qt_standard_project_setup(REQUIRES 6.5)
 
 # Window observation is optional at build time. Aether remains usable when
@@ -52,6 +52,8 @@ qt_add_executable(aether-shell
     WaylandWindowTracker.h
     NotificationService.cpp
     NotificationService.h
+    NotificationDBusAdaptor.cpp
+    NotificationDBusAdaptor.h
     SessionManager.cpp
     SessionManager.h
     SessionSettings.cpp
@@ -96,4 +98,4 @@ if(AETHER_HAVE_WAYLAND)
     target_link_libraries(aether-shell PRIVATE PkgConfig::WAYLAND_CLIENT)
 endif()
 
-target_link_libraries(aether-shell PRIVATE Qt6::Quick)
+target_link_libraries(aether-shell PRIVATE Qt6::Quick Qt6::DBus)
