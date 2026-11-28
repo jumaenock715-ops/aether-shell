@@ -3,6 +3,7 @@ import QtQuick
 Item {
     id: root
     signal closeRequested()
+    property string expandedTile: ""
 
     MouseArea { anchors.fill: parent; onClicked: root.closeRequested() }
 
@@ -24,10 +25,35 @@ Item {
             Grid {
                 columns: 2; spacing: 12; width: parent.width
                 property real cw: (width - spacing) / 2
-                QuickTile { width: parent.cw; label: "Wi-Fi"; subtitle: System.wifi ? "Connected" : "Off"; on: System.wifi; onClicked: System.wifi = !System.wifi }
-                QuickTile { width: parent.cw; label: "Bluetooth"; subtitle: System.bluetooth ? "On" : "Off"; on: System.bluetooth; onClicked: System.bluetooth = !System.bluetooth }
-                QuickTile { width: parent.cw; label: "Dark mode"; subtitle: Theme.dark ? "On" : "Off"; on: Theme.dark; onClicked: SessionSettings.setDarkMode(!Theme.dark) }
-                QuickTile { width: parent.cw; label: "Do not disturb"; subtitle: SessionSettings.doNotDisturb ? "On" : "Off"; on: SessionSettings.doNotDisturb; onClicked: SessionSettings.setDoNotDisturb(!SessionSettings.doNotDisturb) }
+                QuickTile { width: parent.cw; label: "Wi-Fi"; subtitle: System.wifi ? "Connected" : "Off"; on: System.wifi; expanded: root.expandedTile === "Wi-Fi"; onClicked: System.wifi = !System.wifi; onDetailsClicked: root.expandedTile = root.expandedTile === "Wi-Fi" ? "" : "Wi-Fi" }
+                QuickTile { width: parent.cw; label: "Bluetooth"; subtitle: System.bluetooth ? "On" : "Off"; on: System.bluetooth; expanded: root.expandedTile === "Bluetooth"; onClicked: System.bluetooth = !System.bluetooth; onDetailsClicked: root.expandedTile = root.expandedTile === "Bluetooth" ? "" : "Bluetooth" }
+                QuickTile { width: parent.cw; label: "Dark mode"; subtitle: Theme.dark ? "On" : "Off"; on: Theme.dark; expanded: root.expandedTile === "Dark mode"; onClicked: SessionSettings.setDarkMode(!Theme.dark); onDetailsClicked: root.expandedTile = root.expandedTile === "Dark mode" ? "" : "Dark mode" }
+                QuickTile { width: parent.cw; label: "Do not disturb"; subtitle: SessionSettings.doNotDisturb ? "On" : "Off"; on: SessionSettings.doNotDisturb; expanded: root.expandedTile === "Do not disturb"; onClicked: SessionSettings.setDoNotDisturb(!SessionSettings.doNotDisturb); onDetailsClicked: root.expandedTile = root.expandedTile === "Do not disturb" ? "" : "Do not disturb" }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: root.expandedTile.length > 0 ? 58 : 0
+                visible: root.expandedTile.length > 0
+                radius: 14
+                color: Theme.surface
+                border.color: Theme.border
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 3
+                    Text { text: root.expandedTile; color: Theme.text; font.pixelSize: 12; font.bold: true }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        color: Theme.textDim
+                        font.pixelSize: 10
+                        text: root.expandedTile === "Wi-Fi" ? "Wireless networking is a demo toggle; scanning and access-point selection are not connected yet."
+                            : root.expandedTile === "Bluetooth" ? "Bluetooth is a demo toggle. Device discovery and pairing will be added with the connectivity service."
+                            : root.expandedTile === "Dark mode" ? "Changes the Aether shell theme and saves the preference."
+                            : "Suppresses notification pop-ups while keeping notifications in the notification centre."
+                    }
+                }
             }
 
             Column {
