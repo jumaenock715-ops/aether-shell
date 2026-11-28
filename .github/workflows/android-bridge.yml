@@ -1,4 +1,8 @@
 name: Build Android bridge
+
+concurrency:
+  group: aether-android-bridge-${{ github.ref }}
+  cancel-in-progress: true
 on:
   push:
     paths:
