@@ -60,7 +60,7 @@ Item {
                     spacing: 10
                     Text { text: "Bluetooth controllers"; color: Theme.textDim; font.pixelSize: 12 }
                     Text { text: System.hardware && System.hardware.bluetoothControllers.length ? System.hardware.bluetoothControllers.join(", ") : "None detected"; color: Theme.textDim; font.pixelSize: 10; wrapMode: Text.WordWrap; width: parent.width - 90 }
-                    Text { text: "Discover"; color: Theme.accent; font.pixelSize: 12; MouseArea { anchors.fill: parent; onClicked: if (System.hardware) System.hardware.scanBluetooth() } }
+                    Text { text: System.hardware && System.hardware.bluetoothScanning ? "Scanning…" : "Discover"; color: Theme.accent; font.pixelSize: 12; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && !System.hardware.bluetoothScanning) System.hardware.scanBluetooth() } }
                 }
                 Repeater {
                     model: System.hardware ? System.hardware.bluetoothDeviceDetails : []
@@ -79,6 +79,14 @@ Item {
                         Text {
                             text: modelData.connected ? "Disconnect" : "Connect"; color: Theme.accent; font.pixelSize: 10
                             MouseArea { anchors.fill: parent; onClicked: if (System.hardware) { if (modelData.connected) System.hardware.disconnectBluetooth(modelData.address); else System.hardware.connectBluetooth(modelData.address) } }
+                        }
+                        Text {
+                            text: modelData.trusted ? "Untrust" : "Trust"; color: Theme.accent; font.pixelSize: 10
+                            MouseArea { anchors.fill: parent; onClicked: if (System.hardware && modelData.paired) System.hardware.trustBluetooth(modelData.address, !modelData.trusted) }
+                        }
+                        Text {
+                            text: "Remove"; color: Theme.textDim; font.pixelSize: 10
+                            MouseArea { anchors.fill: parent; onClicked: if (System.hardware && !modelData.connected) System.hardware.removeBluetooth(modelData.address) }
                         }
                     }
                 }
