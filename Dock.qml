@@ -8,9 +8,9 @@ Rectangle {
 
     readonly property var pinned: Apps.list.filter(function (a) { return a.appId !== "notes" })
 
-    width: Math.min(row.implicitWidth + 30, parent ? parent.width - 32 : row.implicitWidth + 30)
-    height: 68
-    radius: 22
+    width: Math.min(row.implicitWidth + 32, parent ? parent.width - 32 : row.implicitWidth + 32)
+    height: 72
+    radius: 24
     color: Theme.taskbar
     border.color: Theme.border
     border.width: 1
@@ -18,7 +18,7 @@ Rectangle {
     Row {
         id: row
         anchors.centerIn: parent
-        spacing: 9
+        spacing: 7
 
         // Aether launcher sits at the leading edge of the centred taskbar.
         Item {
@@ -42,8 +42,6 @@ Rectangle {
                 onClicked: root.launcherRequested()
             }
         }
-
-        Rectangle { width: 1; height: 34; anchors.verticalCenter: parent.verticalCenter; color: Theme.border }
 
         Repeater {
             model: root.pinned
