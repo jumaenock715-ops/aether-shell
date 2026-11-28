@@ -73,11 +73,11 @@ Item {
             Text { text: "Network"; color: Theme.text; font.pixelSize: 18; font.bold: true }
             Row { spacing: 16
                 Text { text: "Wi-Fi"; color: Theme.text; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
-                Toggle { checked: System.wifi; onToggled: (v) => System.wifi = v } }
+                Toggle { checked: System.wifi; onToggled: (v) => System.network.setWifiEnabled(v) } }
             Row { spacing: 16
                 Text { text: "Bluetooth"; color: Theme.text; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
                 Toggle { checked: System.bluetooth; onToggled: (v) => System.bluetooth = v } }
-            Text { text: "Demo toggles. Real networking arrives with the Aether system services."; color: Theme.textDim; font.pixelSize: 12 }
+            Text { text: System.network && System.network.available ? (System.network.activeSsid.length ? "Connected to " + System.network.activeSsid : "Not connected") : "NetworkManager is unavailable."; color: Theme.textDim; font.pixelSize: 12 }
         }
 
         // About
