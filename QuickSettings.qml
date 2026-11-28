@@ -71,8 +71,10 @@ Item {
                 Row {
                     width: parent.width; spacing: 8
                     Text { text: "Clipboard history"; color: Theme.textDim; font.pixelSize: 12 }
-                    Text { text: "Clear"; color: Theme.accent2; font.pixelSize: 11 }
-                    MouseArea { width: 34; height: 18; anchors.verticalCenter: parent.verticalCenter; onClicked: Clipboard.clearHistory() }
+                    Text {
+                        text: "Clear"; color: Theme.accent2; font.pixelSize: 11
+                        MouseArea { anchors.fill: parent; onClicked: Clipboard.clearHistory() }
+                    }
                 }
                 ListView {
                     width: parent.width; height: Math.min(78, contentHeight)
