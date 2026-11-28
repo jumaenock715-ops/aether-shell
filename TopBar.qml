@@ -17,22 +17,12 @@ Rectangle {
 
     Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.border }
 
-    // Left: launcher button
-    Rectangle {
-        anchors.left: parent.left; anchors.leftMargin: 8
+    // Aether wordmark: launcher access lives in the centred bottom taskbar.
+    Text {
+        anchors.left: parent.left; anchors.leftMargin: 18
         anchors.verticalCenter: parent.verticalCenter
-        width: 84; height: 24; radius: 12
-        color: launchArea.containsMouse ? Theme.surface : "transparent"
-        Text {
-            anchors.centerIn: parent
-            text: "Aether"
-            color: Theme.text; font.pixelSize: 13; font.bold: true
-        }
-        MouseArea {
-            id: launchArea; anchors.fill: parent; hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.launcherRequested()
-        }
+        text: "AETHER"
+        color: Theme.text; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2
     }
 
     // Centre: clock (opens notifications)
