@@ -131,7 +131,7 @@ Item {
                     id: wifiPassword
                     width: parent.width
                     height: 30
-                    visible: root.selectedSsid.length > 0
+                    visible: root.selectedSsid.length > 0 && (function() { var aps = System.network ? System.network.accessPoints : []; for (var i = 0; i < aps.length; ++i) if (aps[i].ssid === root.selectedSsid) return aps[i].secured; return true; })()
                     echoMode: TextInput.Password
                     color: Theme.text
                     leftPadding: 8
@@ -140,13 +140,12 @@ Item {
                 }
                 Text {
                     visible: root.selectedSsid.length > 0
-                    text: "Connect"
+                    text: System.network && System.network.connecting ? "Connecting…" : "Connect"
                     color: Theme.accent
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            if (System.network) System.network.connectToNetwork(root.selectedSsid, wifiPassword.text)
-                            wifiPassword.text = ""
+                            if (System.network && !System.network.connecting) System.network.connectToNetwork(root.selectedSsid, wifiPassword.text)
                         }
                     }
                 }
