@@ -1,7 +1,9 @@
 #pragma once
 #include <QAbstractListModel>
 #include <QVariantMap>
+#include <QHash>
 class NotificationDBusAdaptor;
+class QTimer;
 class NotificationService final : public QAbstractListModel
 {
     Q_OBJECT
@@ -39,4 +41,5 @@ private:
     NotificationDBusAdaptor *m_dbusAdaptor = nullptr;
     QString m_dbusStatus = QStringLiteral("unavailable");
     bool m_dbusRegistered = false;
+    QHash<uint, QTimer *> m_expiryTimers;
 };
