@@ -77,18 +77,19 @@ void LinuxHardwareService::setError(const QString &message)
 }
 
 bool LinuxHardwareService::run(const QString &program, const QStringList &arguments,
-                               const QString &successMessage)
+                               const QString &successMessage, int timeoutMs)
 {
     QProcess process;
     process.start(program, arguments);
-    if (!process.waitForStarted(3000) || !process.waitForFinished(8000)) {
+    if (!process.waitForStarted(3000) || !process.waitForFinished(timeoutMs)) {
         process.kill();
         setError(program + QStringLiteral(" is unavailable or did not respond."));
         emit operationFinished(false, m_lastError);
         return false;
     }
     if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
-        const QString detail = QString::fromUtf8(process.readAllStandardError()).trimmed();
+        QString detail = QString::fromUtf8(process.readAllStandardError()).trimmed();
+        if (detail.isEmpty()) detail = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
         setError(detail.isEmpty() ? program + QStringLiteral(" failed.") : detail);
         emit operationFinished(false, m_lastError);
         return false;
@@ -97,6 +98,19 @@ bool LinuxHardwareService::run(const QString &program, const QStringList &argume
     emit operationFinished(true, successMessage);
     refresh();
     return true;
+}
+
+bool LinuxHardwareService::validBluetoothAddress(const QString &address) const
+{
+    static const QRegularExpression pattern(QStringLiteral("^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$"));
+    return pattern.match(address.trimmed()).hasMatch();
+}
+
+void LinuxHardwareService::setBluetoothScanning(bool scanning)
+{
+    if (m_bluetoothScanning == scanning) return;
+    m_bluetoothScanning = scanning;
+    emit bluetoothScanningChanged();
 }
 
 void LinuxHardwareService::refresh()
@@ -225,33 +239,85 @@ void LinuxHardwareService::setBluetoothPowered(bool enabled)
 }
 void LinuxHardwareService::scanBluetooth()
 {
-    if (!QProcess::startDetached(QStringLiteral("bluetoothctl"),
-                                 {QStringLiteral("--timeout"), QStringLiteral("10"),
-                                  QStringLiteral("scan"), QStringLiteral("on")})) {
-        setError(QStringLiteral("Bluetooth discovery could not be started."));
+    if (!m_bluetoothAvailable) {
+        setError(QStringLiteral("No Bluetooth controller is available. Check the adapter and BlueZ service."));
         emit operationFinished(false, m_lastError);
         return;
     }
+    if (!m_bluetoothPowered) {
+        setError(QStringLiteral("Bluetooth is powered off. Turn it on before scanning."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    if (m_bluetoothScanning) {
+        setError(QStringLiteral("Bluetooth discovery is already running."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    if (!QProcess::startDetached(QStringLiteral("bluetoothctl"),
+                                 {QStringLiteral("--timeout"), QStringLiteral("12"),
+                                  QStringLiteral("scan"), QStringLiteral("on")})) {
+        setError(QStringLiteral("Could not start Bluetooth discovery. Check bluetoothctl and the BlueZ service."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    setBluetoothScanning(true);
     setError({});
-    emit operationFinished(true, QStringLiteral("Bluetooth discovery started"));
+    emit operationFinished(true, QStringLiteral("Bluetooth discovery started; scanning for 12 seconds."));
+    QTimer::singleShot(12000, this, [this]() {
+        setBluetoothScanning(false);
+        refresh();
+        emit operationFinished(true, QStringLiteral("Bluetooth discovery finished."));
+    });
 }
 void LinuxHardwareService::pairBluetooth(const QString &address)
 {
+    if (!validBluetoothAddress(address)) {
+        setError(QStringLiteral("Invalid Bluetooth device address."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
     run(QStringLiteral("bluetoothctl"), {QStringLiteral("pair"), address},
-        QStringLiteral("Pairing request sent"));
+        QStringLiteral("Bluetooth device paired"), 45000);
 }
 void LinuxHardwareService::connectBluetooth(const QString &address)
 {
+    if (!validBluetoothAddress(address)) {
+        setError(QStringLiteral("Invalid Bluetooth device address."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
     run(QStringLiteral("bluetoothctl"), {QStringLiteral("connect"), address},
-        QStringLiteral("Bluetooth device connected"));
+        QStringLiteral("Bluetooth device connected"), 20000);
 }
 void LinuxHardwareService::disconnectBluetooth(const QString &address)
 {
+    if (!validBluetoothAddress(address)) {
+        setError(QStringLiteral("Invalid Bluetooth device address."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
     run(QStringLiteral("bluetoothctl"), {QStringLiteral("disconnect"), address},
-        QStringLiteral("Bluetooth device disconnected"));
+        QStringLiteral("Bluetooth device disconnected"), 12000);
+}
+void LinuxHardwareService::trustBluetooth(const QString &address, bool trusted)
+{
+    if (!validBluetoothAddress(address)) {
+        setError(QStringLiteral("Invalid Bluetooth device address."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    run(QStringLiteral("bluetoothctl"),
+        {trusted ? QStringLiteral("trust") : QStringLiteral("untrust"), address},
+        trusted ? QStringLiteral("Bluetooth device trusted") : QStringLiteral("Bluetooth device trust revoked"));
 }
 void LinuxHardwareService::removeBluetooth(const QString &address)
 {
+    if (!validBluetoothAddress(address)) {
+        setError(QStringLiteral("Invalid Bluetooth device address."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
     run(QStringLiteral("bluetoothctl"), {QStringLiteral("remove"), address},
         QStringLiteral("Bluetooth device removed"));
 }
