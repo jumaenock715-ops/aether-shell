@@ -5,8 +5,8 @@ NotificationDBusAdaptor::NotificationDBusAdaptor(NotificationService *service)
     : QDBusAbstractAdaptor(service), m_service(service) {}
 QStringList NotificationDBusAdaptor::GetCapabilities() const
 {
-    // The current Aether notification centre renders plain text only.
-    return {QStringLiteral("body")};
+    // Aether renders plain-text bodies and exposes action buttons in its centre.
+    return {QStringLiteral("body"), QStringLiteral("actions")};
 }
 uint NotificationDBusAdaptor::Notify(const QString &appName, uint replacesId,
     const QString &appIcon, const QString &summary, const QString &body,
