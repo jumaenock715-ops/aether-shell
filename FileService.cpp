@@ -186,3 +186,15 @@ bool FileService::openFile(const QString &path)
     }
     return true;
 }
+
+bool FileService::openSelectedFile(const QString &path)
+{
+    const QFileInfo info(path);
+    const QString canonical = info.canonicalFilePath();
+    if (!info.isFile() || !info.isReadable() || canonical.isEmpty() ||
+        !QDesktopServices::openUrl(QUrl::fromLocalFile(canonical))) {
+        emit operationFailed(QStringLiteral("open-selected-file"), QStringLiteral("The selected file could not be opened by its registered MIME/default application."));
+        return false;
+    }
+    return true;
+}
