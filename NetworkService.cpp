@@ -9,6 +9,7 @@
 #include <QDBusVariant>
 #include <QDBusServiceWatcher>
 #include <QTimer>
+#include <QDBusError>
 #include <algorithm>
 
 namespace {
@@ -72,6 +73,13 @@ void NetworkService::setScanning(bool value)
     if (m_scanning == value) return;
     m_scanning = value;
     emit scanningChanged();
+}
+
+void NetworkService::setConnecting(bool value)
+{
+    if (m_connecting == value) return;
+    m_connecting = value;
+    emit connectingChanged();
 }
 
 void NetworkService::setStatus(const QString &value)
@@ -145,9 +153,21 @@ void NetworkService::updateAccessPoints()
             entry.insert(QStringLiteral("ssid"), ssid);
             entry.insert(QStringLiteral("strength"), ap.value(QStringLiteral("Strength")).toUInt());
             entry.insert(QStringLiteral("path"), apPath.path());
-            entry.insert(QStringLiteral("security"),
-                         ap.value(QStringLiteral("WpaFlags")).toUInt() != 0 ||
-                         ap.value(QStringLiteral("RsnFlags")).toUInt() != 0);
+            const uint wpa = ap.value(QStringLiteral("WpaFlags")).toUInt();
+            const uint rsn = ap.value(QStringLiteral("RsnFlags")).toUInt();
+            const uint flags = wpa | rsn;
+            // NetworkManager NM_802_11_AP_SEC_* key-management capability bits.
+            QString security = QStringLiteral("open");
+            if (flags & 0x00000200u)
+                security = QStringLiteral("enterprise");
+            else if (flags & 0x00000400u)
+                security = QStringLiteral("sae");
+            else if (flags & 0x00000100u)
+                security = QStringLiteral("wpa-psk");
+            else if (flags != 0)
+                security = QStringLiteral("unsupported");
+            entry.insert(QStringLiteral("security"), security);
+            entry.insert(QStringLiteral("secured"), security != QStringLiteral("open"));
             found.append(entry);
         }
     }
@@ -225,10 +245,15 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
         emit operationFinished(false, m_lastError);
         return;
     }
+    if (m_connecting) {
+        setError(QStringLiteral("A Wi-Fi connection attempt is already in progress."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
 
     QDBusObjectPath selectedDevice;
     QDBusObjectPath selectedAccessPoint;
-    bool secured = false;
+    uint securityFlags = 0;
     const auto devices = objectPaths(kRoot, kManager, QStringLiteral("GetDevices"));
     for (const auto &devicePath : devices) {
         const QVariantMap device = allProperties(devicePath.path(), kDevice);
@@ -240,20 +265,44 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
             if (ssidFrom(ap.value(QStringLiteral("Ssid"))) != ssid) continue;
             selectedDevice = devicePath;
             selectedAccessPoint = point;
-            secured = ap.value(QStringLiteral("WpaFlags")).toUInt() != 0
-                   || ap.value(QStringLiteral("RsnFlags")).toUInt() != 0;
+            securityFlags = ap.value(QStringLiteral("WpaFlags")).toUInt()
+                          | ap.value(QStringLiteral("RsnFlags")).toUInt();
             break;
         }
         if (!selectedDevice.path().isEmpty()) break;
     }
 
     if (selectedDevice.path().isEmpty()) {
-        setError(QStringLiteral("That network is no longer visible. Scan and try again."));
+        setError(QStringLiteral("That network is no longer visible. Scan again and retry."));
         emit operationFinished(false, m_lastError);
         return;
     }
-    if (secured && password.isEmpty()) {
-        setError(QStringLiteral("This network requires a password."));
+
+    constexpr uint keyMgmtPsk = 0x00000100u;
+    constexpr uint keyMgmt8021x = 0x00000200u;
+    constexpr uint keyMgmtSae = 0x00000400u;
+    const bool enterprise = (securityFlags & keyMgmt8021x) != 0;
+    const bool sae = (securityFlags & keyMgmtSae) != 0;
+    const bool psk = (securityFlags & keyMgmtPsk) != 0;
+    const bool open = securityFlags == 0;
+
+    if (enterprise) {
+        setError(QStringLiteral("This is an enterprise Wi-Fi network. Username/certificate authentication is not supported yet."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    if (!open && !sae && !psk) {
+        setError(QStringLiteral("This Wi-Fi security type is not supported yet (for example, legacy WEP)."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    if (!open && password.isEmpty()) {
+        setError(QStringLiteral("Enter the Wi-Fi password to authenticate."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    if (!open && password.size() >  0 && password.size() < 8) {
+        setError(QStringLiteral("Wi-Fi passwords must contain at least 8 characters."));
         emit operationFinished(false, m_lastError);
         return;
     }
@@ -270,10 +319,13 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     QVariantMap settings;
     settings.insert(QStringLiteral("connection"), connection);
     settings.insert(QStringLiteral("802-11-wireless"), wireless);
-    if (secured) {
+    if (!open) {
         QVariantMap security;
-        security.insert(QStringLiteral("key-mgmt"), QStringLiteral("wpa-psk"));
+        security.insert(QStringLiteral("key-mgmt"),
+                        sae ? QStringLiteral("sae") : QStringLiteral("wpa-psk"));
         security.insert(QStringLiteral("psk"), password);
+        // Store the secret in the NetworkManager system connection profile.
+        security.insert(QStringLiteral("psk-flags"), 0u);
         settings.insert(QStringLiteral("802-11-wireless-security"), security);
     }
     QVariantMap ipv4;
@@ -294,9 +346,38 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
         return;
     }
 
-    setError({});
-    QTimer::singleShot(1200, this, [this]() { refresh(); });
-    emit operationFinished(true, QStringLiteral("Connection requested for ") + ssid);
+    m_pendingSsid = ssid;
+    m_connectionPolls = 0;
+    setError(QString());
+    setConnecting(true);
+    setStatus(QStringLiteral("Authenticating and connecting…"));
+    QTimer::singleShot(500, this, [this]() { pollConnection(); });
+}
+
+void NetworkService::pollConnection()
+{
+    refresh();
+    if (!m_connecting) return;
+    if (m_activeSsid == m_pendingSsid) {
+        const QString connected = m_pendingSsid;
+        m_pendingSsid.clear();
+        setConnecting(false);
+        setError(QString());
+        emit operationFinished(true, QStringLiteral("Connected to ") + connected);
+        return;
+    }
+
+    ++m_connectionPolls;
+    if (m_connectionPolls >= 60) {
+        m_pendingSsid.clear();
+        setConnecting(false);
+        if (m_lastError.isEmpty())
+            setError(QStringLiteral("Connection timed out. Check the password and signal, then try again."));
+        setStatus(QStringLiteral("Connection failed"));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    QTimer::singleShot(500, this, [this]() { pollConnection(); });
 }
 
 void NetworkService::disconnectFromNetwork()
