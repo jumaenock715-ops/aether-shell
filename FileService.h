@@ -33,6 +33,7 @@ public:
     Q_INVOKABLE bool renameEntry(const QString &oldName, const QString &newName);
     Q_INVOKABLE bool trashEntry(const QString &path);
     Q_INVOKABLE bool openFile(const QString &path);
+    Q_INVOKABLE bool openSelectedFile(const QString &path);
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void refreshVolumes();
 signals:
