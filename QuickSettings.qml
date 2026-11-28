@@ -242,7 +242,7 @@ Item {
                 width: parent.width
                 spacing: 5
                 Text {
-                    text: System.hardware && System.hardware.batteryPresent ? "Battery: " + System.battery + "%" : "No battery detected"
+                    text: System.hardware && System.hardware.batteryPresent ? "Battery: " + System.battery + "% · " + System.batteryStatus : "No battery detected"
                     color: Theme.textDim
                     font.pixelSize: 11
                 }
