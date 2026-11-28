@@ -9,7 +9,9 @@ class LinuxHardwareService final : public QObject
     Q_OBJECT
     Q_PROPERTY(bool bluetoothAvailable READ bluetoothAvailable NOTIFY bluetoothChanged)
     Q_PROPERTY(bool bluetoothPowered READ bluetoothPowered NOTIFY bluetoothChanged)
+    Q_PROPERTY(QStringList bluetoothControllers READ bluetoothControllers NOTIFY bluetoothDevicesChanged)
     Q_PROPERTY(QStringList bluetoothDevices READ bluetoothDevices NOTIFY bluetoothDevicesChanged)
+    Q_PROPERTY(QStringList batteryDevices READ batteryDevices NOTIFY batteryChanged)
     Q_PROPERTY(int batteryPercent READ batteryPercent NOTIFY batteryChanged)
     Q_PROPERTY(bool batteryPresent READ batteryPresent NOTIFY batteryChanged)
     Q_PROPERTY(int brightness READ brightness NOTIFY brightnessChanged)
@@ -21,7 +23,9 @@ public:
     explicit LinuxHardwareService(QObject *parent = nullptr);
     bool bluetoothAvailable() const { return m_bluetoothAvailable; }
     bool bluetoothPowered() const { return m_bluetoothPowered; }
+    QStringList bluetoothControllers() const { return m_bluetoothControllers; }
     QStringList bluetoothDevices() const { return m_bluetoothDevices; }
+    QStringList batteryDevices() const { return m_batteryDevices; }
     int batteryPercent() const { return m_batteryPercent; }
     bool batteryPresent() const { return m_batteryPresent; }
     int brightness() const { return m_brightness; }
@@ -58,7 +62,9 @@ private:
     void setError(const QString &message);
     bool m_bluetoothAvailable = false;
     bool m_bluetoothPowered = false;
+    QStringList m_bluetoothControllers;
     QStringList m_bluetoothDevices;
+    QStringList m_batteryDevices;
     int m_batteryPercent = 0;
     bool m_batteryPresent = false;
     int m_brightness = -1;
