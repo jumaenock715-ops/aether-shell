@@ -61,16 +61,23 @@ Item {
                     Text { text: "Discover"; color: Theme.accent; font.pixelSize: 12; MouseArea { anchors.fill: parent; onClicked: if (System.hardware) System.hardware.scanBluetooth() } }
                 }
                 Repeater {
-                    model: System.hardware ? System.hardware.bluetoothDevices : []
+                    model: System.hardware ? System.hardware.bluetoothDeviceDetails : []
                     delegate: Row {
                         width: parent.width
-                        spacing: 8
-                        property var fields: modelData.split(" ")
-                        Text { text: modelData; color: Theme.text; font.pixelSize: 10; width: 150; elide: Text.ElideRight }
-                        Text { text: "Pair"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.pairBluetooth(fields[1]) } }
-                        Text { text: "Connect"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.connectBluetooth(fields[1]) } }
-                        Text { text: "Disconnect"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.disconnectBluetooth(fields[1]) } }
-                        Text { text: "Remove"; color: Theme.accent; font.pixelSize: 10; MouseArea { anchors.fill: parent; onClicked: if (System.hardware && fields.length > 1) System.hardware.removeBluetooth(fields[1]) } }
+                        spacing: 7
+                        Text {
+                            text: modelData.name + " (" + modelData.address + ")"
+                                  + (modelData.connected ? " · Connected" : modelData.paired ? " · Paired" : " · Discovered")
+                            color: Theme.text; font.pixelSize: 10; width: 145; elide: Text.ElideRight
+                        }
+                        Text {
+                            text: modelData.paired ? "Paired" : "Pair"; color: Theme.accent; font.pixelSize: 10
+                            MouseArea { anchors.fill: parent; onClicked: if (!modelData.paired && System.hardware) System.hardware.pairBluetooth(modelData.address) }
+                        }
+                        Text {
+                            text: modelData.connected ? "Disconnect" : "Connect"; color: Theme.accent; font.pixelSize: 10
+                            MouseArea { anchors.fill: parent; onClicked: if (System.hardware) { if (modelData.connected) System.hardware.disconnectBluetooth(modelData.address); else System.hardware.connectBluetooth(modelData.address) } }
+                        }
                     }
                 }
             }
