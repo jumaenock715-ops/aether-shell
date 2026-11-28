@@ -46,11 +46,15 @@ Window {
         if (!app) return
         closePopups()
         for (var i = 0; i < windows.count; i++) {
-            if (windows.get(i).appId === appId) { raise(i); return }
+            if (windows.get(i).appId === appId) {
+                windows.setProperty(i, "minimized", false)
+                raise(i)
+                return
+            }
         }
         topZ += 1
         var n = windows.count
-        windows.append({ appId: appId, title: app.name, stack: topZ,
+        windows.append({ appId: appId, title: app.name, stack: topZ, minimized: false,
                          startX: 120 + (n % 6) * 36, startY: 80 + (n % 6) * 32 })
     }
 
@@ -81,6 +85,7 @@ Window {
             model: windows
             delegate: AppWindow {
                 required property int index
+                required property bool minimized
                 required property string appId
                 required property string title
                 required property int stack
@@ -88,9 +93,11 @@ Window {
                 required property int startY
 
                 x: startX; y: startY
+                visible: !minimized
                 z: stack
                 focused: stack === win.topZ
                 onFocusRequested: win.raise(index)
+                onMinimizeRequested: windows.setProperty(index, "minimized", true)
                 onCloseRequested: windows.remove(index)
             }
         }
