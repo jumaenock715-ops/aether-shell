@@ -66,11 +66,11 @@ Item {
                     model: System.hardware ? System.hardware.bluetoothDeviceDetails : []
                     delegate: Row {
                         width: parent.width
-                        spacing: 7
+                        spacing: 5
                         Text {
                             text: modelData.name + " (" + modelData.address + ")"
                                   + (modelData.connected ? " · Connected" : modelData.paired ? " · Paired" : " · Discovered")
-                            color: Theme.text; font.pixelSize: 10; width: 145; elide: Text.ElideRight
+                            color: Theme.text; font.pixelSize: 9; width: 95; elide: Text.ElideRight
                         }
                         Text {
                             text: modelData.paired ? "Paired" : "Pair"; color: Theme.accent; font.pixelSize: 10
