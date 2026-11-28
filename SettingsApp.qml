@@ -88,6 +88,56 @@ Item {
             Text { text: "Demo toggles. Real networking arrives with the Aether system services."; color: Theme.textDim; font.pixelSize: 12 }
         }
 
+        // Audio
+        Column {
+            visible: root.page === 3; spacing: 12; width: parent.width
+            Text { text: "Audio"; color: Theme.text; font.pixelSize: 18; font.bold: true }
+            Text {
+                text: Audio.available ? "Audio control service available" : "No supported audio control utility detected."
+                color: Theme.textDim; font.pixelSize: 11
+            }
+            Row {
+                spacing: 10
+                Text { text: "Output volume"; color: Theme.text; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                AetherSlider { width: 170; value: Audio.volume / 100; onMoved: (v) => Audio.setVolume(Math.round(v * 100)) }
+                Text { text: Audio.volume + "%"; color: Theme.textDim; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+            }
+            Row {
+                spacing: 12
+                Text { text: "Mute output"; color: Theme.text; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
+                Toggle { checked: Audio.muted; onToggled: (v) => Audio.setMuted(v) }
+            }
+            Text { text: "Output devices"; color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Repeater {
+                model: Audio.outputs
+                delegate: Rectangle {
+                    required property var modelData
+                    width: parent.width; height: 30; radius: 6
+                    color: modelData.name === Audio.selectedOutput ? Theme.surface : "transparent"
+                    Text { anchors.verticalCenter: parent.verticalCenter; x: 8; text: modelData.name; color: Theme.text; font.pixelSize: 11 }
+                    MouseArea { anchors.fill: parent; onClicked: Audio.selectOutput(modelData.name) }
+                }
+            }
+            Text { text: "Input devices"; color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Repeater {
+                model: Audio.inputs
+                delegate: Rectangle {
+                    required property var modelData
+                    width: parent.width; height: 30; radius: 6
+                    color: modelData.name === Audio.selectedInput ? Theme.surface : "transparent"
+                    Text { anchors.verticalCenter: parent.verticalCenter; x: 8; text: modelData.name; color: Theme.text; font.pixelSize: 11 }
+                    MouseArea { anchors.fill: parent; onClicked: Audio.selectInput(modelData.name) }
+                }
+            }
+            Text { text: "Refresh devices"; color: Theme.accent2; font.pixelSize: 12 }
+            MouseArea { width: 100; height: 22; onClicked: Audio.refresh() }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap
+                text: "Device discovery and selection use pactl. Volume and mute use wpctl with pactl fallback. Per-application routing, audio capture and Android audio bridging remain future integration work."
+                color: Theme.textDim; font.pixelSize: 10
+            }
+        }
+
         // Android runtime
         Column {
             visible: root.page === 4; spacing: 14; width: parent.width
