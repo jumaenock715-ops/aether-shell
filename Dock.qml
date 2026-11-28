@@ -8,64 +8,80 @@ Rectangle {
 
     readonly property var pinned: Apps.list.filter(function (a) { return a.appId !== "notes" })
 
-    width: row.width + 24
+    width: Math.min(row.implicitWidth + 30, parent ? parent.width - 32 : row.implicitWidth + 30)
     height: 68
     radius: 22
-    color: Theme.panel
+    color: Theme.taskbar
     border.color: Theme.border
+    border.width: 1
 
     Row {
         id: row
         anchors.centerIn: parent
-        spacing: 12
+        spacing: 9
+
+        // Aether launcher sits at the leading edge of the centred taskbar.
+        Item {
+            width: 48; height: 54
+            Rectangle {
+                anchors.centerIn: parent
+                width: 42; height: 42; radius: 14
+                color: startArea.containsMouse ? Theme.accent : Theme.surface
+                border.color: startArea.containsMouse ? Theme.accent : Theme.border
+                Behavior on color { ColorAnimation { duration: 130 } }
+                Text {
+                    anchors.centerIn: parent
+                    text: "A"
+                    color: startArea.containsMouse ? "white" : Theme.accent
+                    font.pixelSize: 23; font.bold: true
+                }
+            }
+            MouseArea {
+                id: startArea; anchors.fill: parent
+                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                onClicked: root.launcherRequested()
+            }
+        }
+
+        Rectangle { width: 1; height: 34; anchors.verticalCenter: parent.verticalCenter; color: Theme.border }
 
         Repeater {
             model: root.pinned
             delegate: Item {
-                width: 48; height: 56
+                width: 48; height: 54
                 required property var modelData
 
                 AppIcon {
-                    id: icon
-                    size: 46
+                    size: 40
                     anchors.horizontalCenter: parent.horizontalCenter
-                    y: hover.containsMouse ? 0 : 4
+                    y: hover.containsMouse ? 1 : 5
                     tint: modelData.tint
                     label: modelData.name
-                    scale: hover.pressed ? 0.92 : (hover.containsMouse ? 1.12 : 1.0)
-                    Behavior on scale { NumberAnimation { duration: 120 } }
-                    Behavior on y { NumberAnimation { duration: 120 } }
+                    iconName: modelData.icon !== undefined ? modelData.icon : ""
+                    scale: hover.pressed ? 0.91 : (hover.containsMouse ? 1.10 : 1.0)
+                    Behavior on scale { NumberAnimation { duration: 130; easing.type: Easing.OutCubic } }
+                    Behavior on y { NumberAnimation { duration: 130; easing.type: Easing.OutCubic } }
                 }
-                Rectangle {   // running indicator
+
+                Rectangle {
                     visible: root.openIds.indexOf(modelData.appId) >= 0
-                    width: 5; height: 5; radius: 2.5; color: Theme.accent2
+                    width: visible ? 14 : 4; height: 4; radius: 2
+                    color: Theme.accent
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom
+                    Behavior on width { NumberAnimation { duration: 120 } }
                 }
+
                 MouseArea {
                     id: hover; anchors.fill: parent; hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.launch(modelData.appId)
                 }
-            }
-        }
-
-        Item {
-            width: 1; height: 56
-            Rectangle { width: 1; height: 40; y: 8; color: Theme.border }
-        }
-
-        Item {
-            width: 48; height: 56
-            Rectangle {
-                width: 46; height: 46; radius: 13
-                y: 4
-                color: Theme.surface; border.color: Theme.border
-                Text { anchors.centerIn: parent; text: "All"; color: Theme.text; font.pixelSize: 13; font.bold: true }
-            }
-            MouseArea {
-                anchors.fill: parent; cursorShape: Qt.PointingHandCursor
-                onClicked: root.launcherRequested()
+                ToolTip {
+                    visible: hover.containsMouse
+                    text: modelData.name
+                    delay: 550
+                }
             }
         }
     }
