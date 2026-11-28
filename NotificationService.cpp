@@ -126,7 +126,7 @@ uint NotificationService::postDesktopNotification(
 }
 void NotificationService::push(const QString &title, const QString &body)
 {
-    postDesktopNotification(QStringLiteral("Aether Shell"), 0, QString(), title, body, {}, {}, 0);
+    postDesktopNotification(QStringLiteral("Aether Shell"), 0, QString(), title, body, {}, {}, -1);
 }
 bool NotificationService::closeNotification(uint id, uint reason)
 {
