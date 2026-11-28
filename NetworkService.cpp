@@ -153,19 +153,23 @@ void NetworkService::updateAccessPoints()
             entry.insert(QStringLiteral("ssid"), ssid);
             entry.insert(QStringLiteral("strength"), ap.value(QStringLiteral("Strength")).toUInt());
             entry.insert(QStringLiteral("path"), apPath.path());
+            const uint apFlags = ap.value(QStringLiteral("Flags")).toUInt();
             const uint wpa = ap.value(QStringLiteral("WpaFlags")).toUInt();
             const uint rsn = ap.value(QStringLiteral("RsnFlags")).toUInt();
             const uint flags = wpa | rsn;
-            // NetworkManager NM_802_11_AP_SEC_* key-management capability bits.
+            // NM_802_11_AP_FLAGS_PRIVACY marks WEP when no WPA/RSN key
+            // management is advertised; never present such an AP as open.
             QString security = QStringLiteral("open");
-            if (flags & 0x00000200u)
-                security = QStringLiteral("enterprise");
-            else if (flags & 0x00000400u)
+            if (flags & 0x00000400u)
                 security = QStringLiteral("sae");
             else if (flags & 0x00000100u)
                 security = QStringLiteral("wpa-psk");
+            else if (flags & 0x00000200u)
+                security = QStringLiteral("enterprise");
             else if (flags != 0)
                 security = QStringLiteral("unsupported");
+            else if (apFlags & 0x00000001u)
+                security = QStringLiteral("wep-unsupported");
             entry.insert(QStringLiteral("security"), security);
             entry.insert(QStringLiteral("secured"), security != QStringLiteral("open"));
             found.append(entry);
@@ -254,6 +258,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     QDBusObjectPath selectedDevice;
     QDBusObjectPath selectedAccessPoint;
     uint securityFlags = 0;
+    uint accessPointFlags = 0;
     const auto devices = objectPaths(kRoot, kManager, QStringLiteral("GetDevices"));
     for (const auto &devicePath : devices) {
         const QVariantMap device = allProperties(devicePath.path(), kDevice);
@@ -267,6 +272,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
             selectedAccessPoint = point;
             securityFlags = ap.value(QStringLiteral("WpaFlags")).toUInt()
                           | ap.value(QStringLiteral("RsnFlags")).toUInt();
+            accessPointFlags = ap.value(QStringLiteral("Flags")).toUInt();
             break;
         }
         if (!selectedDevice.path().isEmpty()) break;
@@ -281,11 +287,17 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     constexpr uint keyMgmtPsk = 0x00000100u;
     constexpr uint keyMgmt8021x = 0x00000200u;
     constexpr uint keyMgmtSae = 0x00000400u;
-    const bool enterprise = (securityFlags & keyMgmt8021x) != 0;
     const bool sae = (securityFlags & keyMgmtSae) != 0;
     const bool psk = (securityFlags & keyMgmtPsk) != 0;
-    const bool open = securityFlags == 0;
+    const bool enterprise = (securityFlags & keyMgmt8021x) != 0 && !psk && !sae;
+    const bool wep = securityFlags == 0 && (accessPointFlags & 0x00000001u);
+    const bool open = securityFlags == 0 && !wep;
 
+    if (wep) {
+        setError(QStringLiteral("This network uses WEP, which Aether does not support. Use a WPA2/WPA3 network instead."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
     if (enterprise) {
         setError(QStringLiteral("This is an enterprise Wi-Fi network. Username/certificate authentication is not supported yet."));
         emit operationFinished(false, m_lastError);
@@ -301,8 +313,14 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
         emit operationFinished(false, m_lastError);
         return;
     }
-    if (!open && password.size() >  0 && password.size() < 8) {
-        setError(QStringLiteral("Wi-Fi passwords must contain at least 8 characters."));
+    const bool isHexPsk = password.size() == 64
+        && std::all_of(password.cbegin(), password.cend(),
+                       [](QChar ch) { return ch.isDigit()
+                           || (ch.toLower() >= QLatin1Char('a')
+                               && ch.toLower() <= QLatin1Char('f')); });
+    if (!open && (password.size() < 8 || password.size() > 63)
+        && !(psk && isHexPsk)) {
+        setError(QStringLiteral("Enter an 8–63 character Wi-Fi passphrase, or a 64-character hexadecimal WPA pre-shared key."));
         emit operationFinished(false, m_lastError);
         return;
     }
@@ -321,8 +339,11 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     settings.insert(QStringLiteral("802-11-wireless"), wireless);
     if (!open) {
         QVariantMap security;
+        // SAE is preferred when advertised, except that a 64-hex WPA PSK
+        // is a raw PSK and must use wpa-psk rather than SAE.
         security.insert(QStringLiteral("key-mgmt"),
-                        sae ? QStringLiteral("sae") : QStringLiteral("wpa-psk"));
+                        (sae && !isHexPsk) ? QStringLiteral("sae")
+                                           : QStringLiteral("wpa-psk"));
         security.insert(QStringLiteral("psk"), password);
         // Store the secret in the NetworkManager system connection profile.
         security.insert(QStringLiteral("psk-flags"), 0u);
