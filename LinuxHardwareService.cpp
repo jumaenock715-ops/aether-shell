@@ -91,6 +91,7 @@ bool LinuxHardwareService::run(const QString &program, const QStringList &argume
         QString detail = QString::fromUtf8(process.readAllStandardError()).trimmed();
         if (detail.isEmpty()) detail = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
         setError(detail.isEmpty() ? program + QStringLiteral(" failed.") : detail);
+        refresh();
         emit operationFinished(false, m_lastError);
         return false;
     }
