@@ -76,7 +76,7 @@ The adapter contract has two optional event channels:
 - `applicationLifecycleChanged(packageName, state)` for authoritative runtime activity events (`started`, `foreground`, `background`, `stopped`, `crashed`);
 - `applicationWindowChanged(packageName, windowId, title, state)` for compositor window events.
 
-A provider must resolve Android package identity without guessing from window titles or arbitrary compositor app IDs. The Wayland tracker supplies raw window events to the Waydroid adapter. The adapter first checks an explicit live-window-ID-to-package mapping, which is accepted only for a currently observed window and an installed package. For standard Waydroid multi-window surfaces, it can also resolve the vendor-defined `waydroid.<package-name>` app-ID namespace. Waydroid's HWC constructs that namespace from its internal app identifier, and its window-control HAL compares that identifier with the supplied Android package name. Aether strips only the exact, case-sensitive `waydroid.` prefix and validates the suffix against the installed-app catalogue. It does not match titles or arbitrary app IDs. This automatic path depends on Waydroid multi-window mode being enabled (`persist.waydroid.multi_windows=true`) and remains subject to validation against the actual image and compositor. Explicit mappings remain available for other trusted runtime bridges; mappings are in-memory only. Activity state remains `unknown` because the Waydroid CLI adapter does not provide authoritative Android activity events.
+A provider must resolve Android package identity without guessing from window titles or arbitrary compositor app IDs. The Wayland tracker supplies raw window events to the Waydroid adapter. The adapter first checks an explicit live-window-ID-to-package mapping, which is accepted only for a currently observed window and an installed package. For standard Waydroid multi-window surfaces, it can also resolve the vendor-defined `waydroid.<package-name>` app-ID namespace. Waydroid's HWC constructs that namespace from its internal app identifier, and its window-control HAL compares that identifier with the supplied Android package name. Aether strips only the exact, case-sensitive `waydroid.` prefix and validates the suffix against the installed-app catalogue. It does not match titles or arbitrary app IDs. Because a local Wayland client can choose its own `app_id`, this convention is suitable only for UI association, not security decisions. This automatic path depends on Waydroid multi-window mode being enabled (`persist.waydroid.multi_windows=true`) and remains subject to validation against the actual image and compositor. Explicit mappings remain available for other trusted runtime bridges; mappings are in-memory only. Activity state remains `unknown` because the Waydroid CLI adapter does not provide authoritative Android activity events.
 
 ### Wayland window observation strategy
 
@@ -176,11 +176,12 @@ A LineageOS/AOSP-derived runtime does not automatically include licensed Google 
 3. Unified application record and dispatcher — first catalogue and provider-dispatch structure is implemented without changing the launcher visuals.
 4. Runtime adapter skeleton — the Android provider interface is committed and remains independent of whether Waydroid is installed.
 5. Waydroid CLI backend — asynchronous app-list, launch, APK install/remove, and user-session start/stop operations are implemented. Launcher requests start the user session automatically when needed; Settings also exposes manual session controls and refresh. Runtime installation, image initialization, kernel configuration, and validation remain outstanding.
-6. Android request ledger, Wayland foreign-toplevel tracker, and explicit package identity resolver — source implementation present. The ext protocol backend and mapping registry are connected; automatic Waydroid metadata-to-package mapping and the wlr protocol fallback remain outstanding. Weston is excluded as the reference compositor for this feature; labwc/Sway are candidates.
-7. Notification, clipboard, file, audio, and input bridges.
-8. Debian packaging and kernel configuration.
-9. Runtime testing on real target hardware.
-10. ARM64 platform and ARM ABI strategy.
+6. Android request ledger, Wayland foreign-toplevel tracker, and Waydroid-specific package identity resolver — source implementation present. Standard Waydroid multi-window app IDs are resolved using the documented vendor namespace; multi-window mode must be enabled in the image. The wlr protocol fallback remains outstanding. Weston is excluded as the reference compositor for this feature; labwc/Sway are candidates.
+7. Freedesktop notification D-Bus server — source implementation present; end-to-end validation with native Linux and Waydroid notifications remains outstanding.
+8. Clipboard, file, audio, and input bridges.
+9. Debian packaging and kernel configuration.
+10. Runtime testing on real target hardware.
+11. ARM64 platform and ARM ABI strategy.
 
 ## 11. Current implementation status
 
@@ -188,7 +189,7 @@ Implemented in source:
 - Qt/QML shell and launcher;
 - unified application catalogue/dispatch structure with Linux XDG discovery and optional Waydroid adapter;
 - preliminary Linux process launch tracking;
-- in-process notification model;
+- notification model and freedesktop `org.freedesktop.Notifications` D-Bus server (source implementation);
 - Session Settings persistence for dark mode, accent colour, and do-not-disturb;
 - Android launch-request ledger;
 - Android window-event contract and per-package multi-window aggregation.
@@ -196,15 +197,16 @@ Implemented in source:
 Not implemented or not validated:
 - Android runtime or Android system image;
 - ART integration, Binder/BinderFS configuration, Waydroid installation and image initialization;
-- real Wayland foreign-toplevel event source and package-identity resolver;
+- compile/runtime validation of the Wayland foreign-toplevel tracker and Waydroid package identity resolver;
 - authoritative Android activity lifecycle events;
-- Android notification, clipboard, file, audio, or input bridges;
+- end-to-end validation of Android notification forwarding through Waydroid and Aether's D-Bus endpoint;
+- clipboard, file, audio, and input bridges;
 - per-Android-app termination;
 - ARM native-library translation.
 
 The Waydroid adapter invokes CLI operations as separate QProcess arguments, never as a constructed shell command. Its `available` state means only that the executable was found; `running`/`stopped` reflect successful requests made through this adapter, not an independently polled health check. The Wayland tracker is optional at build time and requires `wayland-client` plus `wayland-scanner`; without them it reports `unsupported-build`. No source build, runtime, boot, or hardware test has been performed.
 
 
-## 7. Android and native desktop notifications
+## 12. Android and native desktop notifications
 
-Aether's `NotificationService` now owns the freedesktop `org.freedesktop.Notifications` session-bus name and exports `/org/freedesktop/Notifications` when that name is available. Waydroid's host-side notification manager connects to this standard interface and forwards Android notifications through it; native Linux applications use the same endpoint. Aether stores incoming notifications in its existing list model, preserving the QML notification-centre interface. The initial server supports plain-text bodies, replacement IDs, close requests, and expiry. Rich body markup and interactive action UI are not advertised. If another notification daemon already owns the bus name, Aether records `name-in-use` and cannot receive desktop notifications until that conflict is resolved. This implementation has not been compiled or runtime-tested.
+Aether's `NotificationService` now owns the freedesktop `org.freedesktop.Notifications` session-bus name and exports `/org/freedesktop/Notifications` when that name is available. Waydroid's host-side notification manager connects to this standard interface and forwards Android notifications through it; native Linux applications use the same endpoint. Aether stores incoming notifications in its existing list model, preserving the QML notification-centre interface. The initial server supports plain-text bodies, replacement IDs, close requests, and expiry. Rich body markup and interactive action UI are not advertised. If another notification daemon already owns the bus name, Aether records `name-in-use` and cannot receive desktop notifications until that conflict is resolved. This implementation has not been compiled or runtime-tested. The Wayland `app_id` namespace is a Waydroid convention, not an authenticated identity: another local Wayland client could imitate it. Aether uses it only for UI-level window association and must not use it as a security or permission boundary.
