@@ -35,7 +35,7 @@ Item {
             anchors { left: parent.left; right: parent.right; top: header.bottom; bottom: footer.top; margins: 18 }
             anchors.topMargin: 14
             clip: true; spacing: 8
-            model: Notifications.items
+            model: Notifications.groupedItems
             section.property: "appName"
             section.criteria: ViewSection.FullString
             section.delegate: Rectangle {
