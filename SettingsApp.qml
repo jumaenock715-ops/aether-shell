@@ -209,7 +209,9 @@ Item {
             Repeater {
                 model: Audio.streams
                 delegate: Column {
+                    id: streamDelegate
                     required property var modelData
+                    property int streamId: modelData.id
                     width: parent.width
                     spacing: 4
                     Text {
@@ -247,7 +249,7 @@ Item {
                                 elide: Text.ElideRight
                                 MouseArea {
                                     anchors.fill: parent
-                                    onClicked: Audio.moveStreamToOutput(modelData.id, modelData.name)
+                                    onClicked: Audio.moveStreamToOutput(streamDelegate.streamId, modelData.name)
                                 }
                             }
                         }
