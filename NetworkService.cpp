@@ -45,6 +45,34 @@ QList<QDBusObjectPath> objectPaths(const QString &path, const QString &interface
     return reply.isValid() ? reply.value() : QList<QDBusObjectPath>{};
 }
 
+QString deviceReasonText(uint reason)
+{
+    switch (reason) {
+    case 4: return QStringLiteral("NetworkManager could not configure the Wi-Fi connection.");
+    case 5: return QStringLiteral("An IP address could not be obtained.");
+    case 6: return QStringLiteral("The IP configuration expired.");
+    case 7: return QStringLiteral("Wi-Fi credentials were missing or rejected. Check the username and password.");
+    case 8: return QStringLiteral("The Wi-Fi access point disconnected the authentication session.");
+    case 9: return QStringLiteral("The Wi-Fi authentication settings were rejected.");
+    case 10: return QStringLiteral("The Wi-Fi authentication service failed.");
+    case 11: return QStringLiteral("Wi-Fi authentication timed out.");
+    default: return QStringLiteral("NetworkManager reported a Wi-Fi device failure (reason %1).").arg(reason);
+    }
+}
+
+uint stateReasonCode(const QVariant &value)
+{
+    if (!value.isValid()) return 0;
+    const QDBusArgument arg = value.value<QDBusArgument>();
+    if (arg.currentType() != QDBusArgument::StructureType) return 0;
+    uint state = 0, reason = 0;
+    arg.beginStructure();
+    arg >> state >> reason;
+    arg.endStructure();
+    Q_UNUSED(state);
+    return reason;
+}
+
 QString ssidFrom(const QVariant &value)
 {
     return QString::fromUtf8(value.toByteArray());
@@ -82,6 +110,13 @@ void NetworkService::setConnecting(bool value)
     emit connectingChanged();
 }
 
+void NetworkService::setConnectionState(const QString &value)
+{
+    if (m_connectionState == value) return;
+    m_connectionState = value;
+    emit connectionStateChanged();
+}
+
 void NetworkService::setStatus(const QString &value)
 {
     if (m_status == value) return;
@@ -101,6 +136,7 @@ void NetworkService::refresh()
         if (!m_activeSsid.isEmpty()) { m_activeSsid.clear(); emit activeSsidChanged(); }
         if (!m_accessPoints.isEmpty()) { m_accessPoints.clear(); emit accessPointsChanged(); }
         setStatus(QStringLiteral("NetworkManager unavailable"));
+        setConnectionState(QStringLiteral("unavailable"));
         setScanning(false);
         setError(QStringLiteral("NetworkManager is not running."));
         return;
@@ -132,6 +168,9 @@ void NetworkService::updateActiveConnection()
     if (m_activeSsid != activeSsid) { m_activeSsid = activeSsid; emit activeSsidChanged(); }
     setStatus(activeSsid.isEmpty() ? QStringLiteral("Not connected")
                                    : QStringLiteral("Connected"));
+    if (!m_connecting)
+        setConnectionState(activeSsid.isEmpty() ? QStringLiteral("disconnected")
+                                                : QStringLiteral("connected"));
 }
 
 void NetworkService::updateAccessPoints()
@@ -241,9 +280,10 @@ void NetworkService::requestScan()
     emit operationFinished(true, QStringLiteral("Wi-Fi scan requested"));
 }
 
-void NetworkService::connectToNetwork(const QString &ssid, const QString &password)
+void NetworkService::connectToNetwork(const QString &ssid, const QString &password,
+                                       bool hidden, const QString &username, bool enterpriseAuth)
 {
-    if (!m_available || ssid.isEmpty()) {
+    if (!m_available || ssid.trimmed().isEmpty()) {
         setError(!m_available ? QStringLiteral("NetworkManager is unavailable.")
                               : QStringLiteral("Choose a network first."));
         emit operationFinished(false, m_lastError);
@@ -259,6 +299,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     QDBusObjectPath selectedAccessPoint;
     uint securityFlags = 0;
     uint accessPointFlags = 0;
+    bool accessPointFound = false;
     const auto devices = objectPaths(kRoot, kManager, QStringLiteral("GetDevices"));
     for (const auto &devicePath : devices) {
         const QVariantMap device = allProperties(devicePath.path(), kDevice);
@@ -270,6 +311,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
             if (ssidFrom(ap.value(QStringLiteral("Ssid"))) != ssid) continue;
             selectedDevice = devicePath;
             selectedAccessPoint = point;
+            accessPointFound = true;
             securityFlags = ap.value(QStringLiteral("WpaFlags")).toUInt()
                           | ap.value(QStringLiteral("RsnFlags")).toUInt();
             accessPointFlags = ap.value(QStringLiteral("Flags")).toUInt();
@@ -278,8 +320,18 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
         if (!selectedDevice.path().isEmpty()) break;
     }
 
-    if (selectedDevice.path().isEmpty()) {
-        setError(QStringLiteral("That network is no longer visible. Scan again and retry."));
+    if (selectedDevice.path().isEmpty() && hidden) {
+        for (const auto &devicePath : devices) {
+            const QVariantMap device = allProperties(devicePath.path(), kDevice);
+            if (device.value(QStringLiteral("DeviceType")).toUInt() == 2) {
+                selectedDevice = devicePath;
+                break;
+            }
+        }
+    }
+    if (selectedDevice.path().isEmpty() || (!hidden && !accessPointFound)) {
+        setError(hidden ? QStringLiteral("No Wi-Fi adapter is available for a hidden network.")
+                        : QStringLiteral("That network is no longer visible. Scan again and retry."));
         emit operationFinished(false, m_lastError);
         return;
     }
@@ -289,17 +341,23 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     constexpr uint keyMgmtSae = 0x00000400u;
     const bool sae = (securityFlags & keyMgmtSae) != 0;
     const bool psk = (securityFlags & keyMgmtPsk) != 0;
-    const bool enterprise = (securityFlags & keyMgmt8021x) != 0 && !psk && !sae;
+    const bool enterpriseAvailable = (securityFlags & keyMgmt8021x) != 0;
+    const bool enterprise = enterpriseAuth && (enterpriseAvailable || hidden);
     const bool wep = securityFlags == 0 && (accessPointFlags & 0x00000001u);
-    const bool open = securityFlags == 0 && !wep;
+    const bool open = securityFlags == 0 && !wep && password.isEmpty() && !enterprise;
 
     if (wep) {
         setError(QStringLiteral("This network uses WEP, which Aether does not support. Use a WPA2/WPA3 network instead."));
         emit operationFinished(false, m_lastError);
         return;
     }
-    if (enterprise) {
-        setError(QStringLiteral("This is an enterprise Wi-Fi network. Username/certificate authentication is not supported yet."));
+    if (enterpriseAuth && !enterpriseAvailable && !hidden) {
+        setError(QStringLiteral("This access point does not advertise enterprise (802.1X) authentication."));
+        emit operationFinished(false, m_lastError);
+        return;
+    }
+    if (enterprise && (username.trimmed().isEmpty() || password.isEmpty())) {
+        setError(QStringLiteral("Enter both your enterprise username and password."));
         emit operationFinished(false, m_lastError);
         return;
     }
@@ -318,7 +376,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
                        [](QChar ch) { return ch.isDigit()
                            || (ch.toLower() >= QLatin1Char('a')
                                && ch.toLower() <= QLatin1Char('f')); });
-    if (!open && (password.size() < 8 || password.size() > 63)
+    if (!open && !enterprise && (password.size() < 8 || password.size() > 63)
         && !(psk && isHexPsk)) {
         setError(QStringLiteral("Enter an 8–63 character Wi-Fi passphrase, or a 64-character hexadecimal WPA pre-shared key."));
         emit operationFinished(false, m_lastError);
@@ -333,11 +391,23 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     QVariantMap wireless;
     wireless.insert(QStringLiteral("ssid"), ssid.toUtf8());
     wireless.insert(QStringLiteral("mode"), QStringLiteral("infrastructure"));
+    if (hidden) wireless.insert(QStringLiteral("hidden"), true);
 
     QVariantMap settings;
     settings.insert(QStringLiteral("connection"), connection);
     settings.insert(QStringLiteral("802-11-wireless"), wireless);
-    if (!open) {
+    if (enterprise) {
+        QVariantMap security;
+        security.insert(QStringLiteral("key-mgmt"), QStringLiteral("wpa-eap"));
+        settings.insert(QStringLiteral("802-11-wireless-security"), security);
+        QVariantMap eap;
+        eap.insert(QStringLiteral("eap"), QStringList{QStringLiteral("peap")});
+        eap.insert(QStringLiteral("identity"), username.trimmed());
+        eap.insert(QStringLiteral("password"), password);
+        eap.insert(QStringLiteral("password-flags"), 0u);
+        eap.insert(QStringLiteral("phase2-auth"), QStringLiteral("mschapv2"));
+        settings.insert(QStringLiteral("802-1x"), eap);
+    } else if (!open) {
         QVariantMap security;
         // SAE is preferred when advertised, except that a 64-hex WPA PSK
         // is a raw PSK and must use wpa-psk rather than SAE.
@@ -360,7 +430,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     const QDBusMessage reply = manager.callWithArgumentList(
         QDBus::Block, QStringLiteral("AddAndActivateConnection"),
         {QVariant::fromValue(settings), QVariant::fromValue(selectedDevice),
-         QVariant::fromValue(selectedAccessPoint)});
+         QVariant::fromValue(hidden ? QDBusObjectPath(QStringLiteral("/")) : selectedAccessPoint)});
     if (reply.type() == QDBusMessage::ErrorMessage) {
         setError(reply.errorMessage());
         emit operationFinished(false, m_lastError);
@@ -372,6 +442,7 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
     setError(QString());
     setConnecting(true);
     setStatus(QStringLiteral("Authenticating and connecting…"));
+    setConnectionState(QStringLiteral("authenticating"));
     QTimer::singleShot(500, this, [this]() { pollConnection(); });
 }
 
@@ -383,15 +454,38 @@ void NetworkService::pollConnection()
         const QString connected = m_pendingSsid;
         m_pendingSsid.clear();
         setConnecting(false);
+        setConnectionState(QStringLiteral("connected"));
         setError(QString());
         emit operationFinished(true, QStringLiteral("Connected to ") + connected);
         return;
     }
 
+    // Inspect the wireless device state before falling back to a timeout.
+    const auto devices = objectPaths(kRoot, kManager, QStringLiteral("GetDevices"));
+    for (const auto &devicePath : devices) {
+        const QVariantMap device = allProperties(devicePath.path(), kDevice);
+        if (device.value(QStringLiteral("DeviceType")).toUInt() != 2) continue;
+        const uint state = device.value(QStringLiteral("State")).toUInt();
+        const uint reason = stateReasonCode(device.value(QStringLiteral("StateReason")));
+        if (state == 120 && reason != 0) {
+            m_pendingSsid.clear();
+            setConnecting(false);
+            setConnectionState(QStringLiteral("failed"));
+            setStatus(QStringLiteral("Connection failed"));
+            setError(deviceReasonText(reason));
+            emit operationFinished(false, m_lastError);
+            return;
+        }
+        if (state == 60 || state == 40 || state == 50 || state == 70 || state == 80)
+            setConnectionState(QStringLiteral("authenticating"));
+        else if (state == 90)
+            setConnectionState(QStringLiteral("configuring"));
+    }
     ++m_connectionPolls;
     if (m_connectionPolls >= 60) {
         m_pendingSsid.clear();
         setConnecting(false);
+        setConnectionState(QStringLiteral("failed"));
         if (m_lastError.isEmpty())
             setError(QStringLiteral("Connection timed out. Check the password and signal, then try again."));
         setStatus(QStringLiteral("Connection failed"));
@@ -423,5 +517,6 @@ void NetworkService::disconnectFromNetwork()
         }
         return;
     }
+    setConnectionState(QStringLiteral("disconnected"));
     emit operationFinished(true, QStringLiteral("Already disconnected"));
 }
