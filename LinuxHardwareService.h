@@ -18,6 +18,8 @@ class LinuxHardwareService final : public QObject
     Q_PROPERTY(QStringList batteryDevices READ batteryDevices NOTIFY batteryChanged)
     Q_PROPERTY(int batteryPercent READ batteryPercent NOTIFY batteryChanged)
     Q_PROPERTY(bool batteryPresent READ batteryPresent NOTIFY batteryChanged)
+    Q_PROPERTY(QString batteryStatus READ batteryStatus NOTIFY batteryChanged)
+    Q_PROPERTY(int batteryHealth READ batteryHealth NOTIFY batteryChanged)
     Q_PROPERTY(int brightness READ brightness NOTIFY brightnessChanged)
     Q_PROPERTY(int volume READ volume NOTIFY volumeChanged)
     Q_PROPERTY(bool muted READ muted NOTIFY volumeChanged)
@@ -34,6 +36,8 @@ public:
     QStringList batteryDevices() const { return m_batteryDevices; }
     int batteryPercent() const { return m_batteryPercent; }
     bool batteryPresent() const { return m_batteryPresent; }
+    QString batteryStatus() const { return m_batteryStatus; }
+    int batteryHealth() const { return m_batteryHealth; }
     int brightness() const { return m_brightness; }
     int volume() const { return m_volume; }
     bool muted() const { return m_muted; }
@@ -80,6 +84,8 @@ private:
     QStringList m_batteryDevices;
     int m_batteryPercent = 0;
     bool m_batteryPresent = false;
+    QString m_batteryStatus = QStringLiteral("Unknown");
+    int m_batteryHealth = -1;
     int m_brightness = -1;
     int m_volume = -1;
     bool m_muted = false;
