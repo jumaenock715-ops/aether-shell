@@ -31,13 +31,17 @@ QHash<int, QByteArray> ClipboardService::roleNames() const
 void ClipboardService::captureClipboard()
 {
     const QString text = currentText();
+    emit currentTextChanged();
     if (text.isEmpty()) return;
     if (!m_history.isEmpty() && m_history.first().text == text) return;
+    if (m_history.size() >= MaxEntries) {
+        beginRemoveRows({}, m_history.size() - 1, m_history.size() - 1);
+        m_history.removeLast();
+        endRemoveRows();
+    }
     beginInsertRows({}, 0, 0);
     m_history.prepend({text, QDateTime::currentDateTime().toString(QStringLiteral("hh:mm"))});
-    if (m_history.size() > MaxEntries) m_history.removeLast();
     endInsertRows();
-    emit currentTextChanged();
     emit countChanged();
     emit clipboardChanged(text);
 }
