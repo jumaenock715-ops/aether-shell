@@ -56,7 +56,7 @@ Item {
                             MouseArea {
                                 anchors.fill: parent; anchors.margins: -4
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: Notifications.closeNotification(notificationId)
+                                onClicked: Notifications.closeNotification(notificationId, 2)
                             }
                         }
                     }
