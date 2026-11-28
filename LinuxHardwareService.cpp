@@ -40,7 +40,7 @@ QStringList parseControllers(const QString &listing)
     QStringList controllers;
     static const QRegularExpression pattern(
         QStringLiteral("^Controller\\s+([0-9A-Fa-f:]{17})\\s*(.*)$"));
-    for (const QString &line : listing.split(QLatin1Char('\\n'), Qt::SkipEmptyParts)) {
+    for (const QString &line : listing.split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
         const auto match = pattern.match(line.trimmed());
         if (match.hasMatch())
             controllers.append(match.captured(1) + QStringLiteral("  ") + match.captured(2).trimmed());
@@ -125,7 +125,7 @@ void LinuxHardwareService::refresh()
     QStringList devices;
     const QString listing = commandOutput(QStringLiteral("bluetoothctl"),
                                            {QStringLiteral("devices")});
-    for (const QString &line : listing.split(QLatin1Char('\\n'), Qt::SkipEmptyParts)) {
+    for (const QString &line : listing.split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
         const QString trimmed = line.trimmed();
         if (trimmed.startsWith(QStringLiteral("Device ")))
             devices.append(trimmed);
