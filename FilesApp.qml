@@ -1,9 +1,17 @@
 import QtQuick
+import QtQuick.Dialogs
 
 Item {
     id: root
     property string newFolderName: ""
     property string renameOldName: ""
+
+    FileDialog {
+        id: openPicker
+        title: "Open a file"
+        fileMode: FileDialog.OpenFile
+        onAccepted: FileService.openFile(selectedFile.toLocalFile())
+    }
 
     Column {
         anchors.fill: parent
@@ -39,6 +47,42 @@ Item {
                 width: 72; height: 30; radius: 7; color: Theme.surface; border.color: Theme.border
                 Text { anchors.centerIn: parent; text: "Refresh"; color: Theme.text; font.pixelSize: 11 }
                 MouseArea { anchors.fill: parent; onClicked: FileService.refresh() }
+            }
+            Rectangle {
+                width: 82; height: 30; radius: 7; color: Theme.surface; border.color: Theme.border
+                Text { anchors.centerIn: parent; text: "Open file…"; color: Theme.text; font.pixelSize: 11 }
+                MouseArea { anchors.fill: parent; onClicked: openPicker.open() }
+            }
+        }
+
+        Column {
+            width: parent.width
+            spacing: 5
+            Text { text: "Removable storage"; color: Theme.textDim; font.pixelSize: 10 }
+            Row {
+                width: parent.width
+                spacing: 6
+                Repeater {
+                    model: FileService.volumes
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: Math.min(150, parent.width / 2 - 4); height: 28
+                        radius: 7; color: Theme.surface; border.color: Theme.border
+                        Text {
+                            anchors.fill: parent; anchors.margins: 6
+                            text: modelData.name; color: Theme.text; font.pixelSize: 10
+                            elide: Text.ElideMiddle; verticalAlignment: Text.AlignVCenter
+                        }
+                        MouseArea { anchors.fill: parent; onClicked: FileService.openDirectory(modelData.path) }
+                    }
+                }
+                Rectangle {
+                    visible: FileService.androidSharedPath.length > 0
+                    width: 150; height: 28; radius: 7
+                    color: Theme.surface; border.color: Theme.border
+                    Text { anchors.centerIn: parent; text: "Android shared storage"; color: Theme.text; font.pixelSize: 10 }
+                    MouseArea { anchors.fill: parent; onClicked: FileService.openDirectory(FileService.androidSharedPath) }
+                }
             }
         }
 
@@ -170,7 +214,7 @@ Item {
         }
         Text {
             width: parent.width
-            text: "Files are currently restricted to your home folder. Double-click an item to open it."
+            text: "Browse your home folder, attached removable drives and detected Waydroid shared storage. Double-click files to open them with their registered MIME applications."
             wrapMode: Text.WordWrap
             color: Theme.textDim; font.pixelSize: 10
         }
