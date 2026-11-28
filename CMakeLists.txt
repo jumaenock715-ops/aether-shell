@@ -4,10 +4,18 @@ project(AetherShell VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Quick)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Quick DBus)
 qt_standard_project_setup(REQUIRES 6.5)
 
-qt_add_executable(aether-shell main.cpp AppCatalog.cpp AppCatalog.h)
+qt_add_executable(aether-shell
+    main.cpp
+    AppCatalog.cpp
+    AppCatalog.h
+    SystemBridge.cpp
+    SystemBridge.h
+    NetworkService.cpp
+    NetworkService.h
+)
 
 # Singletons must be flagged before the QML module is created.
 set_source_files_properties(
@@ -37,4 +45,4 @@ qt_add_qml_module(aether-shell
         PlaceholderApp.qml
 )
 
-target_link_libraries(aether-shell PRIVATE Qt6::Quick)
+target_link_libraries(aether-shell PRIVATE Qt6::Quick Qt6::DBus)
