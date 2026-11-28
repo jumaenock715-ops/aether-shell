@@ -1,5 +1,6 @@
 #include "NotificationDBusAdaptor.h"
 #include "NotificationService.h"
+#include <QDBusConnection>
 #include <QDBusMessage>
 NotificationDBusAdaptor::NotificationDBusAdaptor(NotificationService *service)
     : QDBusAbstractAdaptor(service), m_service(service) {}
