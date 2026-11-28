@@ -197,15 +197,25 @@ void LinuxHardwareService::refresh()
         emit bluetoothDevicesChanged();
     }
 
-    struct BatteryReading { QString label; int percent; double full; double now; int metric; };
+    struct BatteryReading {
+        QString label;
+        int percent;
+        double full;
+        double now;
+        int metric;
+        double design;
+        QString status;
+    };
     QList<BatteryReading> batteries;
     for (const QString &path : deviceDirectories(QStringLiteral("/sys/class/power_supply"))) {
         if (readText(path + QStringLiteral("/type")) != QStringLiteral("Battery")) continue;
         const QString presentText = readText(path + QStringLiteral("/present"));
         if (!presentText.isEmpty() && presentText != QStringLiteral("1")) continue;
+
         bool capacityOk = false;
         int capacity = readText(path + QStringLiteral("/capacity")).toInt(&capacityOk);
         if (capacityOk && (capacity < 0 || capacity > 100)) capacityOk = false;
+
         bool fullOk = false, nowOk = false;
         double full = readText(path + QStringLiteral("/energy_full")).toDouble(&fullOk);
         double now = readText(path + QStringLiteral("/energy_now")).toDouble(&nowOk);
@@ -219,29 +229,64 @@ void LinuxHardwareService::refresh()
             capacity = qBound(0, qRound(now / full * 100.0), 100);
             capacityOk = true;
         }
-        if (capacityOk) batteries.append({QFileInfo(path).fileName(), capacity, full, now, metric});
+        if (!capacityOk) continue;
+
+        double design = readText(path + QStringLiteral("/energy_full_design")).toDouble(&fullOk);
+        if (metric == 2 || !fullOk || design <= 0.0)
+            design = readText(path + QStringLiteral("/charge_full_design")).toDouble(&fullOk);
+        if (!fullOk || design <= 0.0) design = 0.0;
+
+        QString status = readText(path + QStringLiteral("/status"));
+        if (status.isEmpty()) status = QStringLiteral("Unknown");
+        batteries.append({QFileInfo(path).fileName(), capacity, full, now, metric, design, status});
     }
+
     QStringList batteryNames;
+    double totalFull = 0.0, totalNow = 0.0, totalDesign = 0.0;
+    bool comparable = !batteries.isEmpty() && batteries.first().metric != 0;
+    bool anyCharging = false, anyDischarging = false, allFull = !batteries.isEmpty();
+    bool anyNotCharging = false;
     int percentSum = 0;
-    double totalFull = 0.0, totalNow = 0.0;
-    const int commonMetric = batteries.isEmpty() ? 0 : batteries.first().metric;
-    bool comparable = commonMetric != 0;
     for (const BatteryReading &battery : batteries) {
-        batteryNames.append(battery.label + QStringLiteral(": ") + QString::number(battery.percent) + QLatin1Char('%'));
+        batteryNames.append(battery.label + QStringLiteral(": ")
+            + QString::number(battery.percent) + QLatin1Char('%')
+            + QStringLiteral(" · ") + battery.status);
         percentSum += battery.percent;
-        if (battery.metric != commonMetric) comparable = false;
-        if (battery.metric == commonMetric && commonMetric != 0) {
+        if (battery.metric != batteries.first().metric) comparable = false;
+        if (battery.metric == batteries.first().metric && battery.metric != 0) {
             totalFull += battery.full;
             totalNow += battery.now;
         }
+        if (battery.design > 0.0) totalDesign += battery.design;
+        anyCharging = anyCharging || battery.status.compare(QStringLiteral("Charging"), Qt::CaseInsensitive) == 0;
+        anyDischarging = anyDischarging || battery.status.compare(QStringLiteral("Discharging"), Qt::CaseInsensitive) == 0;
+        anyNotCharging = anyNotCharging || battery.status.compare(QStringLiteral("Not charging"), Qt::CaseInsensitive) == 0;
+        allFull = allFull && battery.status.compare(QStringLiteral("Full"), Qt::CaseInsensitive) == 0;
     }
+
     const bool present = !batteries.isEmpty();
     const int capacity = !present ? 0 : (comparable && totalFull > 0.0
         ? qBound(0, qRound(totalNow / totalFull * 100.0), 100)
         : qRound(static_cast<double>(percentSum) / batteries.size()));
-    if (m_batteryDevices != batteryNames) { m_batteryDevices = batteryNames; emit batteryChanged(); }
-    if (m_batteryPresent != present || m_batteryPercent != capacity) {
-        m_batteryPresent = present; m_batteryPercent = capacity; emit batteryChanged();
+    const QString status = !present ? QStringLiteral("Unknown")
+        : anyCharging ? QStringLiteral("Charging")
+        : anyDischarging ? QStringLiteral("Discharging")
+        : allFull ? QStringLiteral("Full")
+        : anyNotCharging ? QStringLiteral("Not charging")
+        : QStringLiteral("Unknown");
+    const int health = totalDesign > 0.0 && totalFull > 0.0
+        ? qBound(0, qRound(totalFull / totalDesign * 100.0), 100) : -1;
+
+    const bool batteryChangedValue = m_batteryDevices != batteryNames
+        || m_batteryPresent != present || m_batteryPercent != capacity
+        || m_batteryStatus != status || m_batteryHealth != health;
+    if (batteryChangedValue) {
+        m_batteryDevices = batteryNames;
+        m_batteryPresent = present;
+        m_batteryPercent = capacity;
+        m_batteryStatus = status;
+        m_batteryHealth = health;
+        emit batteryChanged();
     }
 
     const QStringList backlights = deviceDirectories(QStringLiteral("/sys/class/backlight"));
