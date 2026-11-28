@@ -118,6 +118,13 @@ Item {
                     MouseArea { anchors.fill: parent; onClicked: Audio.selectOutput(modelData.name) }
                 }
             }
+            Text { text: "Microphone level"; color: Theme.text; font.pixelSize: 13; font.bold: true }
+            Row {
+                spacing: 10
+                AetherSlider { width: 170; value: Audio.inputVolume / 100; onMoved: (v) => Audio.setInputVolume(Math.round(v * 100)) }
+                Text { text: Audio.inputVolume + "%"; color: Theme.textDim; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                Toggle { checked: Audio.inputMuted; onToggled: (v) => Audio.setInputMuted(v) }
+            }
             Text { text: "Input devices"; color: Theme.text; font.pixelSize: 13; font.bold: true }
             Repeater {
                 model: Audio.inputs
