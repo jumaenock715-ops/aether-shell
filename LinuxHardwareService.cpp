@@ -244,7 +244,36 @@ void LinuxHardwareService::refresh()
         m_batteryPresent = present; m_batteryPercent = capacity; emit batteryChanged();
     }
 
-    const QStringList backlights = deviceDirectories(QStringLiteral("/sys/class/backlight"));void LinuxHardwareService::scanBluetooth()
+    const QStringList backlights = deviceDirectories(QStringLiteral("/sys/class/backlight"));
+    const QString backlightDir = backlights.isEmpty() ? QString() : backlights.first();
+    const int maxBrightness = backlightDir.isEmpty() ? -1
+        : readInt(backlightDir + QStringLiteral("/max_brightness"));
+    const int currentBrightness = backlightDir.isEmpty() ? -1
+        : readInt(backlightDir + QStringLiteral("/brightness"));
+    const int brightness = maxBrightness > 0 && currentBrightness >= 0
+        ? (currentBrightness * 100 / maxBrightness) : -1;
+    if (m_brightness != brightness) { m_brightness = brightness; emit brightnessChanged(); }
+
+    const QString audio = commandOutput(QStringLiteral("wpctl"),
+                                        {QStringLiteral("get-volume"),
+                                         QStringLiteral("@DEFAULT_AUDIO_SINK@")});
+    static const QRegularExpression volumePattern(QStringLiteral("Volume:\\s*([0-9.]+)"));
+    const auto match = volumePattern.match(audio);
+    const int volume = match.hasMatch()
+        ? qBound(0, qRound(match.captured(1).toDouble() * 100.0), 150) : -1;
+    const bool muted = audio.contains(QStringLiteral("[MUTED]"));
+    if (m_volume != volume || m_muted != muted) {
+        m_volume = volume; m_muted = muted; emit volumeChanged();
+    }
+}
+
+void LinuxHardwareService::setBluetoothPowered(bool enabled)
+{
+    run(QStringLiteral("bluetoothctl"),
+        {QStringLiteral("power"), enabled ? QStringLiteral("on") : QStringLiteral("off")},
+        enabled ? QStringLiteral("Bluetooth powered on") : QStringLiteral("Bluetooth powered off"));
+}
+void LinuxHardwareService::scanBluetooth()
 {
     if (!m_bluetoothAvailable) {
         setError(QStringLiteral("No Bluetooth controller is available. Check the adapter and BlueZ service."));
@@ -267,48 +296,12 @@ void LinuxHardwareService::refresh()
         {QStringLiteral("--timeout"), QStringLiteral("12"),
          QStringLiteral("scan"), QStringLiteral("on")});
     m_bluetoothScanProcess->start();
-    if (!m_bluetoothScanProcess->waitForStarted(3000)) {
-        // errorOccurred reports the failure and updates the public operation state.
+    if (!m_bluetoothScanProcess->waitForStarted(3000))
         return;
-    }
+
     setBluetoothScanning(true);
     setError({});
     emit operationFinished(true, QStringLiteral("Bluetooth discovery started; scanning for up to 12 seconds."));
-}ff")},
-        enabled ? QStringLiteral("Bluetooth powered on") : QStringLiteral("Bluetooth powered off"));
-}
-void LinuxHardwareService::scanBluetooth()
-{
-    if (!m_bluetoothAvailable) {
-        setError(QStringLiteral("No Bluetooth controller is available. Check the adapter and BlueZ service."));
-        emit operationFinished(false, m_lastError);
-        return;
-    }
-    if (!m_bluetoothPowered) {
-        setError(QStringLiteral("Bluetooth is powered off. Turn it on before scanning."));
-        emit operationFinished(false, m_lastError);
-        return;
-    }
-    if (m_bluetoothScanning) {
-        setError(QStringLiteral("Bluetooth discovery is already running."));
-        emit operationFinished(false, m_lastError);
-        return;
-    }
-    if (!QProcess::startDetached(QStringLiteral("bluetoothctl"),
-                                 {QStringLiteral("--timeout"), QStringLiteral("12"),
-                                  QStringLiteral("scan"), QStringLiteral("on")})) {
-        setError(QStringLiteral("Could not start Bluetooth discovery. Check bluetoothctl and the BlueZ service."));
-        emit operationFinished(false, m_lastError);
-        return;
-    }
-    setBluetoothScanning(true);
-    setError({});
-    emit operationFinished(true, QStringLiteral("Bluetooth discovery started; scanning for 12 seconds."));
-    QTimer::singleShot(12000, this, [this]() {
-        setBluetoothScanning(false);
-        refresh();
-        emit operationFinished(true, QStringLiteral("Bluetooth discovery finished."));
-    });
 }
 void LinuxHardwareService::pairBluetooth(const QString &address)
 {
