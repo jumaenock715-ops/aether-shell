@@ -22,7 +22,7 @@ NotificationService::NotificationService(QObject *parent) : QAbstractListModel(p
         QDBusServiceWatcher::WatchForOwnerChange, this);
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceOwnerChanged,
             this, [this](const QString &, const QString &, const QString &newOwner) {
-        if (newOwner.isEmpty()) {
+        if (newOwner.isEmpty() && m_dbusStatus == QStringLiteral("name-in-use")) {
             // Do not silently leave Aether without notifications when another
             // desktop daemon exits after the shell has started.
             registerNotificationEndpoint();
@@ -66,6 +66,7 @@ void NotificationService::registerNotificationEndpoint()
 }
 NotificationService::~NotificationService()
 {
+    if (m_serviceWatcher) disconnect(m_serviceWatcher, nullptr, this, nullptr);
     if (!m_dbusRegistered) return;
     QDBusConnection bus = QDBusConnection::sessionBus();
     bus.unregisterObject(kNotificationPath);
