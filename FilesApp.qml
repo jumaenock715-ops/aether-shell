@@ -5,13 +5,6 @@ Item {
     property string newFolderName: ""
     property string renameOldName: ""
 
-    Connections {
-        target: FileService
-        function onOperationFailed(operation, reason) {
-            Notifications.push("Files", reason)
-        }
-    }
-
     Column {
         anchors.fill: parent
         anchors.margins: 16
@@ -136,7 +129,7 @@ Item {
                         font.pixelSize: 16
                     }
                     Column {
-                        width: parent.width - 120; height: parent.height
+                        width: parent.width - 200; height: parent.height
                         spacing: 1
                         Text { width: parent.width; text: name; color: Theme.text; font.pixelSize: 12; elide: Text.ElideRight; verticalAlignment: Text.AlignVCenter }
                         Text { width: parent.width; text: isDirectory ? "Folder" : size + " bytes"; color: Theme.textDim; font.pixelSize: 10 }
