@@ -227,9 +227,9 @@ void NetworkService::connectToNetwork(const QString &ssid, const QString &passwo
 
 void NetworkService::disconnectFromNetwork()
 {
-    const auto activeConnections = property(kRoot, kManager,
-                                              QStringLiteral("ActiveConnections"))
-                                       .value<QList<QDBusObjectPath>>();
+    const auto activeConnections = readDbusProperty(
+        kRoot, kManager, QStringLiteral("ActiveConnections"))
+        .value<QList<QDBusObjectPath>>();
     for (const auto &activePath : activeConnections) {
         const QVariantMap active = allProperties(activePath.path(),
             QStringLiteral("org.freedesktop.NetworkManager.Connection.Active"));
