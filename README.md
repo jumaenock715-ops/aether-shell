@@ -28,7 +28,7 @@ This is an early persistence slice, not the complete settings system. Display br
 
 The C++ `NotificationService` owns the session notification list and exposes it to QML through the existing `Notifications` context property. It preserves the current `items`, `count`, `push(title, body)`, `clear()`, and `pushed` interfaces, so the notification centre and badge do not need a visual rewrite.
 
-This is currently an in-process notification model. It does not yet receive notifications from other applications or publish them through the Linux desktop notification D-Bus interface.
+The service also exports the freedesktop `org.freedesktop.Notifications` interface on the session D-Bus when it can acquire that well-known name. It supports plain-text bodies, replacement IDs, close requests, and expiry timers. Waydroid's host notification manager uses this standard interface to forward Android notifications, and native Linux applications can use it directly. Rich body markup and interactive action UI are not advertised. If another notification daemon already owns the name, Aether records `name-in-use` and does not receive desktop notifications until the conflict is resolved.
 
 ## Application service
 
@@ -67,7 +67,7 @@ Needs Qt 6.5 or newer (for loadFromModule). Optional foreign-toplevel tracking: 
 - `Main.qml` shell root and window management
 - `Theme.qml`, `Apps.qml`, `System.qml` QML singletons (shared state)
 - `SessionSettings.cpp/.h`: persistent user appearance preferences
-- `NotificationService.cpp/.h`: session notification model exposed to QML
+- `NotificationService.cpp/.h` and `NotificationDBusAdaptor.cpp/.h`: notification model plus freedesktop D-Bus server
 - `SessionManager.cpp/.h`: application process lifecycle tracking
 - `ApplicationService.cpp/.h`: unified catalogue and provider-based launch dispatcher (Linux and optional Waydroid providers)
 - `AndroidRuntimeAdapter.h`: Android runtime provider interface
