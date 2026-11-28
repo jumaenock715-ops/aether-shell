@@ -64,7 +64,11 @@ Item {
             visible: root.page === 1; spacing: 18; width: parent.width
             Text { text: "Display"; color: Theme.text; font.pixelSize: 18; font.bold: true }
             Text { text: "Brightness"; color: Theme.text; font.pixelSize: 14 }
-            AetherSlider { width: 260; value: System.brightness; onMoved: (v) => System.brightness = v }
+            AetherSlider {
+                width: 260
+                value: System.brightness
+                onMoved: (v) => { if (System.hardware) System.hardware.setBrightness(Math.round(v * 100)) }
+            }
         }
 
         // Network
