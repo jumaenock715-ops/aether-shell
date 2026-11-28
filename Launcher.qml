@@ -90,7 +90,7 @@ Item {
             Flickable {
                 id: scroller
                 width: parent.width
-                height: parent.height - 130
+                height: Math.max(120, parent.height - 210)
                 clip: true
                 contentWidth: width
                 contentHeight: grid.height
