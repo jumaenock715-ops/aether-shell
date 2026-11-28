@@ -93,9 +93,17 @@ Rectangle {
     }
 
     // Content
+    readonly property bool isSettingsApp: {
+        const id = root.appId.toLowerCase()
+        const name = root.title.toLowerCase()
+        return id === "settings" || id.indexOf("settings") >= 0 ||
+               name === "settings" || name === "system settings"
+    }
     Loader {
+        id: appContent
         anchors { left: parent.left; right: parent.right; top: bar.bottom; bottom: parent.bottom }
-        sourceComponent: root.appId === "settings" ? settingsComp : (root.appId === "files" ? filesComp : placeholderComp)
+        sourceComponent: root.isSettingsApp ? settingsComp :
+                         (root.appId === "files" ? filesComp : placeholderComp)
     }
     Component { id: settingsComp;    SettingsApp {} }
     Component { id: filesComp; FilesApp {} }
