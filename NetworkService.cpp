@@ -4,47 +4,58 @@
 #include <QDBusConnection>
 #include <QDBusInterface>
 #include <QDBusMessage>
-#include <QDBusMetaType>
-#include <QDBusPendingCallWatcher>
-#include <QDBusPendingReply>
+#include <QDBusObjectPath>
+#include <QDBusReply>
 #include <QDBusServiceWatcher>
-#include <QDBusVariant>
 #include <QTimer>
-#include <QVariantMap>
+#include <algorithm>
 
 namespace {
-const QString service = QStringLiteral("org.freedesktop.NetworkManager");
-const QString rootPath = QStringLiteral("/org/freedesktop/NetworkManager");
-const QString rootInterface = QStringLiteral("org.freedesktop.NetworkManager");
-const QString propertiesInterface = QStringLiteral("org.freedesktop.DBus.Properties");
-const QString deviceInterface = QStringLiteral("org.freedesktop.NetworkManager.Device");
-const QString wifiInterface = QStringLiteral("org.freedesktop.NetworkManager.Device.Wireless");
-const QString accessPointInterface = QStringLiteral("org.freedesktop.NetworkManager.AccessPoint");
+const QString kService = QStringLiteral("org.freedesktop.NetworkManager");
+const QString kRoot = QStringLiteral("/org/freedesktop/NetworkManager");
+const QString kManager = QStringLiteral("org.freedesktop.NetworkManager");
+const QString kProperties = QStringLiteral("org.freedesktop.DBus.Properties");
+const QString kDevice = QStringLiteral("org.freedesktop.NetworkManager.Device");
+const QString kWireless = QStringLiteral("org.freedesktop.NetworkManager.Device.Wireless");
+const QString kAccessPoint = QStringLiteral("org.freedesktop.NetworkManager.AccessPoint");
 
-QVariantMap readProperties(const QString &path, const QString &interfaceName)
+QVariant property(const QString &path, const QString &interfaceName, const QString &name)
 {
-    QDBusInterface properties(service, path, propertiesInterface,
-                              QDBusConnection::systemBus());
+    QDBusInterface iface(kService, path, kProperties, QDBusConnection::systemBus());
+    const QDBusReply<QDBusVariant> reply =
+        iface.call(QStringLiteral("Get"), interfaceName, name);
+    return reply.isValid() ? reply.value().variant() : QVariant{};
+}
+
+QVariantMap allProperties(const QString &path, const QString &interfaceName)
+{
+    QDBusInterface iface(kService, path, kProperties, QDBusConnection::systemBus());
     const QDBusReply<QVariantMap> reply =
-        properties.call(QStringLiteral("GetAll"), interfaceName);
+        iface.call(QStringLiteral("GetAll"), interfaceName);
     return reply.isValid() ? reply.value() : QVariantMap{};
 }
 
-QString decodeSsid(const QByteArray &bytes)
+QList<QDBusObjectPath> objectPaths(const QString &path, const QString &interfaceName,
+                                   const QString &method)
 {
-    return QString::fromUtf8(bytes);
+    QDBusInterface iface(kService, path, interfaceName, QDBusConnection::systemBus());
+    const QDBusReply<QList<QDBusObjectPath>> reply = iface.call(method);
+    return reply.isValid() ? reply.value() : QList<QDBusObjectPath>{};
+}
+
+QString ssidFrom(const QVariant &value)
+{
+    return QString::fromUtf8(value.toByteArray());
 }
 }
 
 NetworkService::NetworkService(QObject *parent)
     : QObject(parent),
-      m_watcher(new QDBusServiceWatcher(service, QDBusConnection::systemBus(),
+      m_watcher(new QDBusServiceWatcher(kService, QDBusConnection::systemBus(),
                                          QDBusServiceWatcher::WatchForOwnerChange, this))
 {
     connect(m_watcher, &QDBusServiceWatcher::serviceOwnerChanged,
-            this, [this](const QString &, const QString &, const QString &) {
-        refresh();
-    });
+            this, [this]() { refresh(); });
     refresh();
 }
 
@@ -71,120 +82,76 @@ void NetworkService::setStatus(const QString &value)
 
 void NetworkService::refresh()
 {
-    const bool wasAvailable = m_available;
-    QDBusInterface manager(service, rootPath, rootInterface,
-                           QDBusConnection::systemBus());
+    const bool previousAvailability = m_available;
+    QDBusInterface manager(kService, kRoot, kManager, QDBusConnection::systemBus());
     m_available = manager.isValid();
-    if (wasAvailable != m_available) emit availableChanged();
+    if (previousAvailability != m_available) emit availableChanged();
 
     if (!m_available) {
-        m_wifiEnabled = false;
-        m_activeSsid.clear();
-        m_accessPoints.clear();
+        if (m_wifiEnabled) { m_wifiEnabled = false; emit wifiEnabledChanged(); }
+        if (!m_activeSsid.isEmpty()) { m_activeSsid.clear(); emit activeSsidChanged(); }
+        if (!m_accessPoints.isEmpty()) { m_accessPoints.clear(); emit accessPointsChanged(); }
         setStatus(QStringLiteral("NetworkManager unavailable"));
         setScanning(false);
-        emit wifiEnabledChanged();
-        emit activeSsidChanged();
-        emit accessPointsChanged();
-        setError(QStringLiteral("NetworkManager is not running or its system D-Bus API is unavailable."));
+        setError(QStringLiteral("NetworkManager is not running."));
         return;
     }
 
     setError(QString());
-    updateWifiEnabled();
-    updateActiveConnection();
-    updateAccessPoints();
-}
+    const bool enabled = property(kRoot, kManager, QStringLiteral("WirelessEnabled")).toBool();
+    if (m_wifiEnabled != enabled) { m_wifiEnabled = enabled; emit wifiEnabledChanged(); }
 
-void NetworkService::updateWifiEnabled()
-{
-    QDBusInterface manager(service, rootPath, rootInterface,
-                           QDBusConnection::systemBus());
-    const QDBusReply<bool> reply = manager.call(QStringLiteral("WirelessEnabled")).type()
-        == QDBusMessage::ErrorMessage
-        ? QDBusReply<bool>() : manager.call(QStringLiteral("Get"), rootInterface,
-                                             QStringLiteral("WirelessEnabled"));
-    bool enabled = false;
-    if (reply.isValid()) enabled = reply.value();
-    else {
-        const QVariantMap props = readProperties(rootPath, rootInterface);
-        enabled = props.value(QStringLiteral("WirelessEnabled")).toBool();
-    }
-    if (m_wifiEnabled != enabled) {
-        m_wifiEnabled = enabled;
-        emit wifiEnabledChanged();
-    }
+    updateAccessPoints();
+    updateActiveConnection();
 }
 
 void NetworkService::updateActiveConnection()
 {
-    QString ssid;
-    QDBusInterface manager(service, rootPath, rootInterface,
-                           QDBusConnection::systemBus());
-    const QVariantMap props = readProperties(rootPath, rootInterface);
-    const QStringList activePaths =
-        props.value(QStringLiteral("ActiveConnections")).toStringList();
-
-    for (const QString &activePath : activePaths) {
-        const QVariantMap active = readProperties(activePath,
-            QStringLiteral("org.freedesktop.NetworkManager.Connection.Active"));
-        if (active.value(QStringLiteral("Type")).toString() != QStringLiteral("802-11-wireless"))
-            continue;
-        const QString devicePath = active.value(QStringLiteral("Devices")).toStringList().value(0);
-        if (devicePath.isEmpty()) continue;
-        const QVariantMap device = readProperties(devicePath, deviceInterface);
-        const QString apPath = device.value(QStringLiteral("ActiveAccessPoint")).toString();
+    // The active SSID is derived from the wireless device's ActiveAccessPoint.
+    QString activeSsid;
+    const auto devices = objectPaths(kRoot, kManager, QStringLiteral("GetDevices"));
+    for (const auto &devicePath : devices) {
+        const QVariantMap device = allProperties(devicePath.path(), kDevice);
+        if (device.value(QStringLiteral("DeviceType")).toUInt() != 2) continue;
+        const QString apPath = property(devicePath.path(), kWireless,
+                                        QStringLiteral("ActiveAccessPoint")).value<QDBusObjectPath>().path();
         if (apPath.isEmpty() || apPath == QStringLiteral("/")) continue;
-        const QVariantMap ap = readProperties(apPath, accessPointInterface);
-        ssid = decodeSsid(ap.value(QStringLiteral("Ssid")).toByteArray());
+        activeSsid = ssidFrom(allProperties(apPath, kAccessPoint).value(QStringLiteral("Ssid")));
         break;
     }
 
-    if (m_activeSsid != ssid) {
-        m_activeSsid = ssid;
-        emit activeSsidChanged();
-    }
-    setStatus(ssid.isEmpty() ? QStringLiteral("Not connected")
-                             : QStringLiteral("Connected"));
+    if (m_activeSsid != activeSsid) { m_activeSsid = activeSsid; emit activeSsidChanged(); }
+    setStatus(activeSsid.isEmpty() ? QStringLiteral("Not connected")
+                                   : QStringLiteral("Connected"));
 }
 
 void NetworkService::updateAccessPoints()
 {
     QVariantList found;
-    QDBusInterface manager(service, rootPath, rootInterface,
-                           QDBusConnection::systemBus());
-    const QVariantMap managerProps = readProperties(rootPath, rootInterface);
-    const QStringList devicePaths = managerProps.value(QStringLiteral("Devices")).toStringList();
-
-    for (const QString &devicePath : devicePaths) {
-        const QVariantMap device = readProperties(devicePath, deviceInterface);
+    const auto devices = objectPaths(kRoot, kManager, QStringLiteral("GetDevices"));
+    for (const auto &devicePath : devices) {
+        const QVariantMap device = allProperties(devicePath.path(), kDevice);
         if (device.value(QStringLiteral("DeviceType")).toUInt() != 2) continue;
 
-        QDBusInterface wireless(service, devicePath, wifiInterface,
-                                QDBusConnection::systemBus());
-        const QDBusReply<QList<QDBusObjectPath>> aps =
-            wireless.call(QStringLiteral("GetAllAccessPoints"));
-        if (!aps.isValid()) continue;
-
-        for (const QDBusObjectPath &apPath : aps.value()) {
-            const QVariantMap ap = readProperties(apPath.path(), accessPointInterface);
-            const QString ssid = decodeSsid(ap.value(QStringLiteral("Ssid")).toByteArray());
+        const auto accessPoints = objectPaths(devicePath.path(), kWireless,
+                                               QStringLiteral("GetAllAccessPoints"));
+        for (const auto &apPath : accessPoints) {
+            const QVariantMap ap = allProperties(apPath.path(), kAccessPoint);
+            const QString ssid = ssidFrom(ap.value(QStringLiteral("Ssid")));
             if (ssid.isEmpty()) continue;
-            QVariantMap item;
-            item.insert(QStringLiteral("ssid"), ssid);
-            item.insert(QStringLiteral("strength"), ap.value(QStringLiteral("Strength")).toUInt());
-            item.insert(QStringLiteral("path"), apPath.path());
-            item.insert(QStringLiteral("security"),
-                        ap.value(QStringLiteral("WpaFlags")).toUInt() != 0 ||
-                        ap.value(QStringLiteral("RsnFlags")).toUInt() != 0);
-            found.append(item);
+
+            QVariantMap entry;
+            entry.insert(QStringLiteral("ssid"), ssid);
+            entry.insert(QStringLiteral("strength"), ap.value(QStringLiteral("Strength")).toUInt());
+            entry.insert(QStringLiteral("path"), apPath.path());
+            entry.insert(QStringLiteral("security"),
+                         ap.value(QStringLiteral("WpaFlags")).toUInt() != 0 ||
+                         ap.value(QStringLiteral("RsnFlags")).toUInt() != 0);
+            found.append(entry);
         }
     }
 
-    if (m_accessPoints != found) {
-        m_accessPoints = found;
-        emit accessPointsChanged();
-    }
+    if (m_accessPoints != found) { m_accessPoints = found; emit accessPointsChanged(); }
 }
 
 void NetworkService::setWifiEnabled(bool enabled)
@@ -195,10 +162,10 @@ void NetworkService::setWifiEnabled(bool enabled)
         return;
     }
 
-    QDBusInterface manager(service, rootPath, rootInterface,
-                           QDBusConnection::systemBus());
-    const QDBusMessage reply =
-        manager.call(QStringLiteral("SetWirelessEnabled"), enabled);
+    QDBusInterface properties(kService, kRoot, kProperties, QDBusConnection::systemBus());
+    const QDBusMessage reply = properties.call(
+        QStringLiteral("Set"), kManager, QStringLiteral("WirelessEnabled"),
+        QVariant::fromValue(QDBusVariant(enabled)));
     if (reply.type() == QDBusMessage::ErrorMessage) {
         setError(reply.errorMessage());
         emit operationFinished(false, m_lastError);
@@ -206,7 +173,7 @@ void NetworkService::setWifiEnabled(bool enabled)
     }
 
     setError(QString());
-    QTimer::singleShot(350, this, [this]() { refresh(); });
+    QTimer::singleShot(300, this, [this]() { refresh(); });
     emit operationFinished(true, enabled ? QStringLiteral("Wi-Fi enabled")
                                          : QStringLiteral("Wi-Fi disabled"));
 }
@@ -219,28 +186,23 @@ void NetworkService::requestScan()
         return;
     }
 
-    QDBusInterface manager(service, rootPath, rootInterface,
-                           QDBusConnection::systemBus());
-    const QStringList devices = readProperties(rootPath, rootInterface)
-        .value(QStringLiteral("Devices")).toStringList();
-    bool requested = false;
-
-    for (const QString &path : devices) {
-        const QVariantMap device = readProperties(path, deviceInterface);
+    const auto devices = objectPaths(kRoot, kManager, QStringLiteral("GetDevices"));
+    bool foundWireless = false;
+    for (const auto &devicePath : devices) {
+        const QVariantMap device = allProperties(devicePath.path(), kDevice);
         if (device.value(QStringLiteral("DeviceType")).toUInt() != 2) continue;
-        QDBusInterface wireless(service, path, wifiInterface,
+        foundWireless = true;
+        QDBusInterface wireless(kService, devicePath.path(), kWireless,
                                 QDBusConnection::systemBus());
-        const QDBusMessage reply = wireless.call(QStringLiteral("RequestScan"),
-                                                  QVariantMap{});
+        const QDBusMessage reply = wireless.call(QStringLiteral("RequestScan"), QVariantMap{});
         if (reply.type() == QDBusMessage::ErrorMessage) {
             setError(reply.errorMessage());
             emit operationFinished(false, m_lastError);
             return;
         }
-        requested = true;
     }
 
-    if (!requested) {
+    if (!foundWireless) {
         setError(QStringLiteral("No Wi-Fi device was found."));
         emit operationFinished(false, m_lastError);
         return;
@@ -257,58 +219,29 @@ void NetworkService::requestScan()
 void NetworkService::connectToNetwork(const QString &ssid, const QString &password)
 {
     Q_UNUSED(password);
-    if (ssid.trimmed().isEmpty()) {
-        setError(QStringLiteral("Choose a network first."));
-        emit operationFinished(false, m_lastError);
-        return;
-    }
-
-    const auto it = std::find_if(m_accessPoints.cbegin(), m_accessPoints.cend(),
-        [&ssid](const QVariant &entry) {
-            return entry.toMap().value(QStringLiteral("ssid")).toString() == ssid;
-        });
-    if (it == m_accessPoints.cend()) {
-        setError(QStringLiteral("That network is not in the current scan results."));
-        emit operationFinished(false, m_lastError);
-        return;
-    }
-
-    const QString path = it->toMap().value(QStringLiteral("path")).toString();
-    activateAccessPoint(path, password);
-}
-
-void NetworkService::activateAccessPoint(const QString &path, const QString &password)
-{
-    Q_UNUSED(password);
-    setError(QStringLiteral("Network activation needs a saved NetworkManager connection profile. This first bridge milestone supports discovery and radio control; secure password/profile handling is the next increment."));
+    Q_UNUSED(ssid);
+    setError(QStringLiteral("Network connection setup is not implemented in this increment. Network discovery and Wi-Fi radio control are available first; secure saved-profile handling follows next."));
     emit operationFinished(false, m_lastError);
 }
 
 void NetworkService::disconnectFromNetwork()
 {
-    if (m_activeSsid.isEmpty()) {
-        emit operationFinished(true, QStringLiteral("Already disconnected"));
-        return;
-    }
-
-    const QVariantMap managerProps = readProperties(rootPath, rootInterface);
-    const QStringList activePaths =
-        managerProps.value(QStringLiteral("ActiveConnections")).toStringList();
-
-    for (const QString &activePath : activePaths) {
-        const QVariantMap active = readProperties(activePath,
+    const auto activeConnections = property(kRoot, kManager,
+                                              QStringLiteral("ActiveConnections"))
+                                       .value<QList<QDBusObjectPath>>();
+    for (const auto &activePath : activeConnections) {
+        const QVariantMap active = allProperties(activePath.path(),
             QStringLiteral("org.freedesktop.NetworkManager.Connection.Active"));
         if (active.value(QStringLiteral("Type")).toString() != QStringLiteral("802-11-wireless"))
             continue;
-        QDBusInterface activeConnection(service, activePath,
-            QStringLiteral("org.freedesktop.NetworkManager.Connection.Active"),
-            QDBusConnection::systemBus());
-        const QDBusMessage reply = activeConnection.call(QStringLiteral("Deactivate"));
+
+        QDBusInterface manager(kService, kRoot, kManager, QDBusConnection::systemBus());
+        const QDBusMessage reply = manager.call(QStringLiteral("DeactivateConnection"), activePath);
         if (reply.type() == QDBusMessage::ErrorMessage) {
             setError(reply.errorMessage());
             emit operationFinished(false, m_lastError);
         } else {
-            QTimer::singleShot(350, this, [this]() { refresh(); });
+            QTimer::singleShot(300, this, [this]() { refresh(); });
             emit operationFinished(true, QStringLiteral("Disconnected"));
         }
         return;
