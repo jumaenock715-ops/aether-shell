@@ -4,6 +4,8 @@ Item {
     id: root
     signal closeRequested()
     property string selectedSsid: ""
+    property bool hiddenNetwork: false
+    property bool enterpriseNetwork: false
 
     MouseArea { anchors.fill: parent; onClicked: root.closeRequested() }
 
@@ -133,26 +135,68 @@ Item {
             Column {
                 width: parent.width
                 spacing: 6
-                Text { text: "Connect to " + (root.selectedSsid || "Wi-Fi"); color: Theme.textDim; font.pixelSize: 12 }
+                Text {
+                    text: root.hiddenNetwork ? "Connect to a hidden network" : "Connect to " + (root.selectedSsid || "Wi-Fi")
+                    color: Theme.textDim; font.pixelSize: 12
+                }
+                Text {
+                    text: root.hiddenNetwork ? "Use visible networks" : "Connect to hidden network"
+                    color: Theme.accent; font.pixelSize: 11
+                    MouseArea { anchors.fill: parent; onClicked: { root.hiddenNetwork = !root.hiddenNetwork; root.selectedSsid = ""; } }
+                }
                 TextInput {
-                    id: wifiPassword
-                    width: parent.width
-                    height: 30
-                    visible: root.selectedSsid.length > 0 && (function() { var aps = System.network ? System.network.accessPoints : []; for (var i = 0; i < aps.length; ++i) if (aps[i].ssid === root.selectedSsid) return aps[i].secured; return true; })()
-                    echoMode: TextInput.Password
-                    color: Theme.text
-                    leftPadding: 8
+                    id: hiddenSsid
+                    width: parent.width; height: 30
+                    visible: root.hiddenNetwork
+                    placeholderText: "Network name (SSID)"
+                    color: Theme.text; leftPadding: 8
                     verticalAlignment: TextInput.AlignVCenter
                     Rectangle { anchors.fill: parent; z: -1; radius: 6; color: Theme.surface; border.color: Theme.border }
                 }
                 Text {
-                    visible: root.selectedSsid.length > 0
-                    text: System.network && System.network.connecting ? "Connecting…" : "Connect"
+                    visible: root.hiddenNetwork || root.selectedSsid.length > 0
+                    text: root.enterpriseNetwork ? "Enterprise authentication: PEAP / MSCHAPv2" : "Use enterprise authentication (802.1X)"
+                    color: Theme.accent; font.pixelSize: 11
+                    MouseArea { anchors.fill: parent; onClicked: root.enterpriseNetwork = !root.enterpriseNetwork }
+                }
+                TextInput {
+                    id: enterpriseUsername
+                    width: parent.width; height: 30
+                    visible: root.enterpriseNetwork && (root.hiddenNetwork || root.selectedSsid.length > 0)
+                    placeholderText: "Enterprise username / identity"
+                    color: Theme.text; leftPadding: 8
+                    verticalAlignment: TextInput.AlignVCenter
+                    Rectangle { anchors.fill: parent; z: -1; radius: 6; color: Theme.surface; border.color: Theme.border }
+                }
+                TextInput {
+                    id: wifiPassword
+                    width: parent.width; height: 30
+                    visible: (root.hiddenNetwork || root.selectedSsid.length > 0) &&
+                             (root.enterpriseNetwork || root.hiddenNetwork || (function() {
+                                 var aps = System.network ? System.network.accessPoints : [];
+                                 for (var i = 0; i < aps.length; ++i)
+                                     if (aps[i].ssid === root.selectedSsid) return aps[i].secured;
+                                 return true;
+                             })())
+                    echoMode: TextInput.Password
+                    placeholderText: root.enterpriseNetwork ? "Enterprise password" : "Wi-Fi password"
+                    color: Theme.text; leftPadding: 8
+                    verticalAlignment: TextInput.AlignVCenter
+                    Rectangle { anchors.fill: parent; z: -1; radius: 6; color: Theme.surface; border.color: Theme.border }
+                }
+                Text {
+                    visible: (root.hiddenNetwork && hiddenSsid.text.length > 0) || (!root.hiddenNetwork && root.selectedSsid.length > 0)
+                    text: System.network && System.network.connecting
+                          ? "Connecting · " + System.network.connectionState : "Connect"
                     color: Theme.accent
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            if (System.network && !System.network.connecting) System.network.connectToNetwork(root.selectedSsid, wifiPassword.text)
+                            var targetSsid = root.hiddenNetwork ? hiddenSsid.text.trim() : root.selectedSsid;
+                            if (System.network && !System.network.connecting && targetSsid.length > 0)
+                                System.network.connectToNetwork(targetSsid, wifiPassword.text,
+                                                                 root.hiddenNetwork, enterpriseUsername.text,
+                                                                 root.enterpriseNetwork);
                         }
                     }
                 }
