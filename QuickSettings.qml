@@ -109,12 +109,24 @@ Item {
                         id: clipboardEntry
                         required property string text
                         required property string kind
+                        required property string imageUrl
                         required property int index
                         width: ListView.view.width; height: 30; radius: 10; color: Theme.surface
+                        Image {
+                            visible: clipboardEntry.kind === "image" && clipboardEntry.imageUrl.length > 0
+                            anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 7
+                            width: 22; height: 22
+                            source: clipboardEntry.imageUrl
+                            fillMode: Image.PreserveAspectCrop
+                        }
                         Text {
-                            anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
+                            anchors.fill: parent
+                            anchors.leftMargin: clipboardEntry.kind === "image" ? 36 : 8
+                            anchors.rightMargin: 8
                             verticalAlignment: Text.AlignVCenter
-                            text: (clipboardEntry.kind === "image" ? "▧  " : clipboardEntry.kind === "files" ? "▤  " : "") + clipboardEntry.text; color: Theme.text; font.pixelSize: 11
+                            text: (clipboardEntry.kind === "files" ? "▤  " : "") + clipboardEntry.text
+                            color: Theme.text; font.pixelSize: 11
                             elide: Text.ElideRight
                         }
                         MouseArea { anchors.fill: parent; onClicked: Clipboard.restore(clipboardEntry.index) }
