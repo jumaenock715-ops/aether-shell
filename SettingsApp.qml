@@ -395,7 +395,7 @@ Item {
                         ["Permissions", "App access to location, camera, microphone and files"],
                         ["Credentials", "Certificates, keys and trusted credentials"]
                     ] : root.page === 12 ? [
-                        ["Internal storage", "Used space, available space and category breakdown"],
+                        ["Internal storage / ROM", "Internal flash capacity, used space and available space"],
                         ["External storage", "SD cards, USB drives and mounted volumes"],
                         ["Storage management", "Temporary files, downloads and cleanup"]
                     ] : root.page === 13 ? [
