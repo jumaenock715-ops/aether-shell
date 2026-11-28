@@ -313,8 +313,23 @@ bool WaydroidRuntimeAdapter::isInstalledPackage(const QString &packageName) cons
 
 QString WaydroidRuntimeAdapter::mappedPackageForWindow(const QString &windowId) const
 {
-    const QString packageName = m_windowPackageMappings.value(windowId);
-    return !packageName.isEmpty() && isInstalledPackage(packageName)
+    // Prefer an explicitly registered mapping from a trusted runtime bridge.
+    QString packageName = m_windowPackageMappings.value(windowId);
+
+    // Waydroid's own multi-window HWC sets xdg_toplevel app_id to
+    // "waydroid." + its internal appID. Its window-control HAL compares that
+    // appID directly with the Android packageName. Accept only this
+    // Waydroid-specific namespace, then validate the suffix against the
+    // installed Android package catalogue. Never infer identity from titles
+    // or from arbitrary compositor app_id values.
+    if (packageName.isEmpty()) {
+        const QString appId = m_observedWindows.value(windowId).appId;
+        const QString prefix = QStringLiteral("waydroid.");
+        if (appId.startsWith(prefix, Qt::CaseSensitive))
+            packageName = appId.mid(prefix.size());
+    }
+
+    return validPackageName(packageName) && isInstalledPackage(packageName)
         ? packageName : QString();
 }
 
